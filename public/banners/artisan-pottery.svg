@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="100%" height="100%">
+  <defs>
+    <linearGradient id="artBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451a03" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#1e1b18" />
+    </linearGradient>
+    <radialGradient id="artGlow" cx="20%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#ea580c" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#1e1b18" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#artBg)" />
+  <rect width="1200" height="675" fill="url(#artGlow)" />
+
+  <!-- Ceramic Vase Geometric Silhouette -->
+  <g transform="translate(820, 160)" opacity="0.45" stroke="#f97316" stroke-width="3" fill="none">
+    <ellipse cx="120" cy="80" rx="90" ry="30" />
+    <path d="M30,80 Q-20,240 70,360 Q120,410 170,360 Q260,240 210,80" />
+    <ellipse cx="120" cy="380" rx="60" ry="20" fill="#ea580c" fill-opacity="0.2" />
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(100, 220)">
+    <rect x="0" y="-45" width="220" height="34" rx="8" fill="#c2410c" fill-opacity="0.25" stroke="#f97316" stroke-width="1.5" />
+    <text x="110" y="-23" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="800" fill="#ffedd5" letter-spacing="3" text-anchor="middle">CULTURE &amp; WORKSHOP</text>
+    <text x="0" y="45" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="900" fill="#ffffff" letter-spacing="-1">Clay &amp; Cortado Masterclass</text>
+    <text x="0" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="500" fill="#fed7aa">The Earth Studio, Film Nagar • Hand-building Pottery &amp; Specialty Brews</text>
+  </g>
+</svg>
