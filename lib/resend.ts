@@ -80,7 +80,7 @@ export async function sendTicketEmail(payload: TicketEmailPayload) {
           </div>
           <div class="footer">
             SceneO Technologies • Rule 33 CGST Pure Agent Compliance<br>
-            Have questions? Email support@sceneo.in
+            Have questions? Email sceneo.in@gmail.com
           </div>
         </div>
       </body>
