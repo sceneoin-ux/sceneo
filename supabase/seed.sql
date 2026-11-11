@@ -12,7 +12,7 @@ DECLARE
 BEGIN
     -- 1. Create Default Verified Organizer
     INSERT INTO public.organizers (name, phone, email, upi_id, staff_scanner_pin, is_verified)
-    VALUES ('SceneO Curated Hosts', '+919988776655', 'sceneo.in@gmail.com', 'sceneo@upi', '8421', TRUE)
+    VALUES ('SceneO Curated Hosts', '+918143749379', 'sceneo.in@gmail.com', 'sceneo@upi', '8421', TRUE)
     RETURNING id INTO v_org_id;
 
     -- 2. Insert Event 1: Contemporary Live Music Concert
