@@ -96,14 +96,18 @@ export async function GET(req: NextRequest) {
         checked_in_at,
         orders (
           customer_name,
+          customer_phone,
+          order_number,
           payment_status,
+          quantity,
           ticket_tiers (
             tier_name
           )
         )
       `)
       .eq("orders.event_id", eventData.id)
-      .eq("orders.payment_status", "PAID");
+      .eq("orders.payment_status", "PAID")
+      .limit(10000);
 
     interface RawPassRow {
       pass_token: string;
@@ -112,11 +116,17 @@ export async function GET(req: NextRequest) {
       checked_in_at?: string;
       orders?: {
         customer_name?: string;
+        customer_phone?: string;
+        order_number?: string;
+        quantity?: number;
         ticket_tiers?: {
           tier_name?: string;
         } | { tier_name?: string }[];
       } | {
         customer_name?: string;
+        customer_phone?: string;
+        order_number?: string;
+        quantity?: number;
         ticket_tiers?: {
           tier_name?: string;
         } | { tier_name?: string }[];
@@ -128,12 +138,17 @@ export async function GET(req: NextRequest) {
     const sanitizedPasses = rawList.map((p) => {
       const order = Array.isArray(p.orders) ? p.orders[0] : p.orders;
       const tier = Array.isArray(order?.ticket_tiers) ? order?.ticket_tiers[0] : order?.ticket_tiers;
+      const totalQty = Math.max(1, order?.quantity || 1);
 
       return {
         token: p.pass_token,
+        orderNumber: order?.order_number || "",
+        customerPhone: order?.customer_phone || "",
         attendeeName: order?.customer_name || "Verified Attendee",
         tierName: tier?.tier_name || "General Admission",
         assignedSeat: p.assigned_seat || "General Floor",
+        totalQuantity: totalQty,
+        admittedCount: p.is_checked_in ? totalQty : 0,
         isCheckedIn: p.is_checked_in,
         checkedInAt: p.checked_in_at ? new Date(p.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null
       };

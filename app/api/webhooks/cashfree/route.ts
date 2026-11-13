@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
-import { sendTicketEmail } from "@/lib/resend";
+import { fulfillOrder } from "@/lib/fulfillment";
 import { logSecurityEvent } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
@@ -50,100 +50,40 @@ export async function POST(req: NextRequest) {
     }
 
     if (paymentStatus === "SUCCESS" || eventType === "PAYMENT_SUCCESS_WEBHOOK") {
-      // Fetch Order
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .select("*, ticket_tiers(*, events(*))")
-        .eq("id", orderId)
-        .single();
+      const cfPaymentId =
+        payload.data?.payment?.cf_payment_id?.toString() ||
+        payload.data?.payment?.payment_id?.toString() ||
+        `cf_pay_${Date.now()}`;
 
-      if (orderErr || !order) {
-        console.error("Webhook: Order not found in database:", orderId);
-        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      const result = await fulfillOrder(orderId, cfPaymentId, orderId);
+
+      if (!result.success) {
+        console.error("[Webhook Fulfill Failed]:", result.error, "for orderId:", orderId);
+        return NextResponse.json({ error: result.error || "Order not found" }, { status: 404 });
       }
 
-      if (order.payment_status === "PAID") {
-        return NextResponse.json({ status: "already_processed" });
-      }
-
-      // Mark Order as PAID
-      await supabase
-        .from("orders")
-        .update({
-          payment_status: "PAID",
-          cashfree_payment_id: payload.data?.payment?.cf_payment_id?.toString() || `cf_pay_${Date.now()}`
-        })
-        .eq("id", orderId);
-
-      // Generate Dynamic Anti-Screenshot Pass
-      const event = order.ticket_tiers?.events;
-      const passToken = `SC-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(
-        Math.random() * 9000 + 1000
-      )}`;
-      const totpSecret = `totp_sec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
-      let assignedSeat = "General Admission";
-      if (event?.venue_type === "theater") {
-        const audi = event?.audi_screen_number || "Audi 1";
-        const randomRow = ["A", "B", "C", "D", "E", "F", "G"][Math.floor(Math.random() * 7)];
-        const randomSeat = Math.floor(Math.random() * 20 + 1);
-        assignedSeat = `${audi} • Row ${randomRow} • Seat ${randomSeat}`;
-      } else if (order.ticket_tiers?.tier_name) {
-        assignedSeat = `${order.ticket_tiers.tier_name} Entry`;
-      }
-
-      await supabase.from("passes").insert({
-        order_id: orderId,
-        pass_token: passToken,
-        totp_secret: totpSecret,
-        assigned_seat: assignedSeat,
-        is_checked_in: false
+      return NextResponse.json({
+        status: "success",
+        order_number: result.order?.order_number,
+        pass_token: result.pass?.pass_token,
+        alreadyProcessed: result.alreadyProcessed || false
       });
-
-      logSecurityEvent({
-        eventType: "PAYMENT_CONFIRMED",
-        severity: "INFO",
-        actorType: "WEBHOOK",
-        entityType: "ORDER",
-        entityId: orderId,
-        metadata: {
-          orderNumber: order.order_number,
-          amount: Number(order.total_paid || 0),
-          passToken: passToken
-        }
-      });
-
-      console.log(`[PASS ISSUED] Order: ${order.order_number} | Token: ${passToken} | Seat: ${assignedSeat}`);
-
-      // Dispatch Transactional Ticket Pass via Resend
-      if (order.customer_email) {
-        try {
-          await sendTicketEmail({
-            toEmail: order.customer_email,
-            attendeeName: order.customer_name || "Valued Guest",
-            eventTitle: event?.title || "Live Experience",
-            eventDate: event?.event_date || "Upcoming",
-            eventTime: event?.gates_open || "Doors Open",
-            venueName: event?.venue_name || "Venue",
-            city: event?.city || "Hyderabad",
-            totalTickets: order.quantity || 1,
-            totalAmount: Number(order.total_paid || 0),
-            bookingRef: order.order_number,
-            passUrl: `https://sceneo.in/e/${event?.slug || "ticket"}?orderId=${orderId}`
-          });
-        } catch (emailErr) {
-          console.error("[Resend Webhook Error]:", emailErr);
-        }
-      }
-
-      return NextResponse.json({ status: "success", order_id: orderId, pass_token: passToken });
     }
 
     if (paymentStatus === "FAILED" || eventType === "PAYMENT_FAILED_WEBHOOK") {
-      await supabase
-        .from("orders")
-        .update({ payment_status: "FAILED" })
-        .eq("id", orderId);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+      if (isUUID) {
+        await supabase
+          .from("orders")
+          .update({ payment_status: "FAILED" })
+          .eq("id", orderId);
+      } else {
+        const orderNumClean = orderId.replace(/^CF_/, "").replace(/_/g, "-");
+        await supabase
+          .from("orders")
+          .update({ payment_status: "FAILED" })
+          .or(`cashfree_order_id.eq.${orderId},order_number.eq.${orderId},order_number.eq.${orderNumClean}`);
+      }
 
       return NextResponse.json({ status: "failed_recorded", order_id: orderId });
     }
@@ -151,6 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "acknowledged" });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal error";
+    console.error("[Cashfree Webhook Exception]:", errorMsg);
     return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

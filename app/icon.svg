@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient: Deep Slate to Midnight Obsidian -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#090D16"/>
+    </linearGradient>
+
+    <!-- Accent Dot Gradient: Warm Radiant Crimson Rose -->
+    <linearGradient id="roseAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="60%" stop-color="#E11D48"/>
+      <stop offset="100%" stop-color="#BE123C"/>
+    </linearGradient>
+
+    <!-- Subtle Soft Inner Border Glow -->
+    <linearGradient id="innerBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+
+    <!-- Drop Shadow for the "S" -->
+    <filter id="subtleShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Glow for the Rose Accent Dot -->
+    <filter id="accentGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- 1. Squircle / Rounded Square Container (Optimized for Instagram / Mobile Icons) -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bgGradient)"/>
+  
+  <!-- 2. Refined 1px Inner Precision Rim -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="url(#innerBorder)" stroke-width="2.5"/>
+
+  <!-- 3. Geometric Modern "S" Glyph -->
+  <!-- Designed with pure architectural curvature, bold optical weight, and perfect geometric balance -->
+  <g filter="url(#subtleShadow)">
+    <path d="M 335 186
+             C 335 150 305 125 256 125
+             C 202 125 170 152 170 190
+             C 170 224 192 244 242 258
+             L 272 266
+             C 318 279 344 301 344 338
+             C 344 382 308 412 254 412
+             C 192 412 158 376 156 328
+             L 214 328
+             C 216 352 233 367 257 367
+             C 285 367 302 350 302 331
+             C 302 308 285 292 245 281
+             L 215 273
+             C 167 259 140 234 140 194
+             C 140 148 181 118 253 118
+             C 321 118 360 152 362 200
+             Z" 
+          fill="#FFFFFF" />
+  </g>
+
+  <!-- 4. Signature Scene"O" Radiant Dot (Upper Right Orbital Position) -->
+  <!-- Ambient Rose Glow Aura -->
+  <circle cx="368" cy="144" r="28" fill="#E11D48" opacity="0.25" filter="url(#accentGlow)"/>
+  <!-- Crisp Rose Dot Core -->
+  <circle cx="368" cy="144" r="20" fill="url(#roseAccent)" filter="url(#accentGlow)"/>
+  <!-- Specular Highlight for Modern Finish -->
+  <circle cx="362" cy="138" r="5" fill="#FFFFFF" opacity="0.6"/>
+</svg>

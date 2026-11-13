@@ -19,6 +19,7 @@ import {
   Music
 } from "lucide-react";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface AdminEvent {
   id: string;
@@ -30,6 +31,10 @@ interface AdminEvent {
   audi_screen_number?: string;
   city: string;
   organizerName: string;
+  organizerPhone?: string;
+  organizerUpi?: string;
+  organizerVerified?: boolean;
+  is_published?: boolean;
   event_date: string;
   totalCapacity: number;
   ticketsSold: number;
@@ -119,6 +124,31 @@ export default function PlatformOwnerDashboard() {
     }
   }, [isAuthenticated, fetchAdminData]);
 
+  const handleApproveEvent = async (eventId: string, action: "approve" | "reject") => {
+    try {
+      const token = sessionStorage.getItem("sceneo_admin_token") || pin;
+      const res = await fetch("/api/admin/approve-event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": token
+        },
+        body: JSON.stringify({ eventId, action, password: pin })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message);
+        setEvents((prev) =>
+          prev.map((ev) => (ev.id === eventId ? { ...ev, is_published: data.isPublished } : ev))
+        );
+      } else {
+        alert(data.error || "Failed to update event status.");
+      }
+    } catch {
+      alert("Network error. Please try again.");
+    }
+  };
+
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pin) return;
@@ -166,13 +196,8 @@ export default function PlatformOwnerDashboard() {
         {/* Top Bar */}
         <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-6 py-4">
           <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-sm font-black text-white">
-                S
-              </span>
-              <span className="text-lg font-bold tracking-tight text-slate-900">
-                Scene<span className="text-rose-600">O</span> Admin
-              </span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="md" badge="Admin" />
             </Link>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
               Site Owner Portal
@@ -248,13 +273,8 @@ export default function PlatformOwnerDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white shadow-sm">
-                S
-              </span>
-              <span className="text-xl font-bold tracking-tight text-slate-900">
-                Scene<span className="text-rose-600">O</span>
-              </span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="md" />
             </Link>
             <span className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700">
               Platform Owner Control Room
@@ -425,6 +445,7 @@ export default function PlatformOwnerDashboard() {
                     <th className="py-4 px-6">Event Title & Venue</th>
                     <th className="py-4 px-6">Category</th>
                     <th className="py-4 px-6">Host / Organizer</th>
+                    <th className="py-4 px-6">Status / KYC</th>
                     <th className="py-4 px-6">Tickets Sold</th>
                     <th className="py-4 px-6">Event Gross (GMV)</th>
                     <th className="py-4 px-6 text-rose-600">SceneO Fee (5.5%)</th>
@@ -458,7 +479,39 @@ export default function PlatformOwnerDashboard() {
 
                         <td className="py-4 px-6">
                           <div className="font-semibold text-slate-900">{ev.organizerName}</div>
-                          <div className="text-[10px] text-emerald-700">Verified Payout Linked</div>
+                          <div className="text-[10px] text-slate-500 font-mono">
+                            {ev.organizerPhone ? `+91 ${ev.organizerPhone.replace(/\D/g, "").slice(-10)}` : "Verified Payout"}
+                          </div>
+                          {ev.organizerUpi && (
+                            <div className="text-[10px] text-emerald-700 font-mono">UPI: {ev.organizerUpi}</div>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-6">
+                          {ev.is_published ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Approved & Live
+                            </span>
+                          ) : (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                ⏳ Pending KYC
+                              </span>
+                              {ev.organizerPhone && (
+                                <a
+                                  href={`https://wa.me/91${ev.organizerPhone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
+                                    `Hi ${ev.organizerName}, SceneO Verification Desk reviewing your event '${ev.title}'. Please share your Aadhaar & PAN card copy for approval.`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block text-[10px] text-emerald-700 font-semibold hover:underline"
+                                >
+                                  💬 Ask Aadhaar/PAN
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         <td className="py-4 px-6">
@@ -476,12 +529,27 @@ export default function PlatformOwnerDashboard() {
 
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {!ev.is_published ? (
+                              <button
+                                onClick={() => handleApproveEvent(ev.id, "approve")}
+                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-500 shadow-xs"
+                              >
+                                Approve & Go Live
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleApproveEvent(ev.id, "reject")}
+                                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 hover:text-rose-600"
+                              >
+                                Pause
+                              </button>
+                            )}
                             <Link
                               href={`/organizer/${ev.slug || ev.id}`}
                               target="_blank"
                               className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              Host Dashboard
+                              Host
                             </Link>
                             <Link
                               href={`/e/${ev.slug || ev.id}`}

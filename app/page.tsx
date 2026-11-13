@@ -26,6 +26,8 @@ import {
   Phone
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { BrandLogo } from "@/components/BrandLogo";
+import { INDIAN_CITIES } from "@/config/cities";
 
 // Category Tabs Definition
 const CATEGORY_TABS = [
@@ -56,21 +58,7 @@ interface LiveEvent {
   tagStyle: string;
 }
 
-// Major Indian cultural cities with coordinates for live geolocation
-const INDIAN_CITIES = [
-  { name: "Hyderabad", state: "Telangana", lat: 17.3850, lng: 78.4867 },
-  { name: "Bengaluru", state: "Karnataka", lat: 12.9716, lng: 77.5946 },
-  { name: "Mumbai", state: "Maharashtra", lat: 19.0760, lng: 72.8777 },
-  { name: "Delhi NCR", state: "Delhi", lat: 28.6139, lng: 77.2090 },
-  { name: "Goa", state: "Goa", lat: 15.2993, lng: 74.1240 },
-  { name: "Pune", state: "Maharashtra", lat: 18.5204, lng: 73.8567 },
-  { name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lng: 80.2707 },
-  { name: "Kolkata", state: "West Bengal", lat: 22.5726, lng: 88.3639 },
-  { name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lng: 72.5714 },
-  { name: "Jaipur", state: "Rajasthan", lat: 26.9124, lng: 75.7873 },
-  { name: "Kochi", state: "Kerala", lat: 9.9312, lng: 76.2673 },
-  { name: "Chandigarh", state: "Punjab/Haryana", lat: 30.7333, lng: 76.7794 },
-];
+
 
 function EventCardItem({ evt }: { evt: LiveEvent }) {
   const [imgSrc, setImgSrc] = useState(evt.bannerUrl);
@@ -146,9 +134,9 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
   const [selectedCity, setSelectedCity] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("sceneo_user_city") || "Hyderabad";
+      return localStorage.getItem("sceneo_user_city") || "All Cities";
     }
-    return "Hyderabad";
+    return "All Cities";
   });
 
   // City Selector Modal State
@@ -159,6 +147,7 @@ export default function HomePage() {
 
   // Live Events State
   const [events, setEvents] = useState<LiveEvent[]>([]);
+  const [activeCities, setActiveCities] = useState<string[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   // Auto-detect live location on first visit if not yet saved in localStorage
@@ -199,6 +188,9 @@ export default function HomePage() {
       .then((data) => {
         if (isMounted) {
           setEvents(data.events || []);
+          if (Array.isArray(data.activeCities)) {
+            setActiveCities(data.activeCities);
+          }
           setIsLoadingEvents(false);
         }
       })
@@ -296,13 +288,8 @@ export default function HomePage() {
           
           {/* Left: Brand & City Selector */}
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <span className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-slate-900 text-xs sm:text-sm font-black text-white shadow-xs">
-                S
-              </span>
-              <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                Scene<span className="text-rose-600">O</span>
-              </span>
+            <Link href="/" className="flex items-center shrink-0">
+              <BrandLogo size="md" />
             </Link>
 
             {/* Interactive City Selector Pill */}
@@ -320,6 +307,15 @@ export default function HomePage() {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <Link
+              href="/passes"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
+              title="Retrieve your booked passes anytime by phone number"
+            >
+              <Ticket className="h-3.5 w-3.5 text-rose-500" />
+              <span>My Passes</span>
+            </Link>
+
             <Link
               href="/organizer"
               className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
@@ -441,11 +437,23 @@ export default function HomePage() {
           })}
         </div>
 
-        {/* Dynamic Spotlight Events / Clean Empty State */}
+        {/* Dynamic Spotlight Events / Skeleton Loading / Clean Empty State */}
         {isLoadingEvents ? (
-          <div className="py-16 sm:py-20 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-rose-600" />
-            <p className="mt-3 text-xs font-semibold text-slate-500">Loading spotlight programs in {selectedCity}...</p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs animate-pulse">
+                <div className="aspect-[16/9] w-full bg-slate-200" />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 w-1/3 bg-slate-200 rounded" />
+                  <div className="h-4 w-4/5 bg-slate-200 rounded" />
+                  <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div className="h-3 w-20 bg-slate-200 rounded" />
+                    <div className="h-4 w-12 bg-slate-200 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : events.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center shadow-xs">
@@ -459,19 +467,22 @@ export default function HomePage() {
               Be the first creator, collective, or host to publish an acoustic session, movie screening, or workshop in {selectedCity} with 0% platform commission.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
+              {selectedCity !== "All Cities" && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectCity("All Cities")}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-50 transition shadow-xs"
+                >
+                  <Compass className="h-3.5 w-3.5 text-rose-600" />
+                  <span>View All Across India</span>
+                </button>
+              )}
               <Link
                 href="/organizer/events/new"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
               >
                 <Plus className="h-4 w-4" />
                 <span>+ Host an Event in {selectedCity}</span>
-              </Link>
-              <Link
-                href={`/explore?city=${encodeURIComponent(selectedCity)}`}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-              >
-                <Compass className="h-3.5 w-3.5 text-rose-600" />
-                <span>Browse All Gigs</span>
               </Link>
             </div>
           </div>
@@ -606,14 +617,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-4 pb-10 border-b border-slate-100">
             {/* Col 1: Brand & Bio */}
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-xs font-black text-white">
-                  S
-                </span>
-                <span className="text-xl font-bold text-slate-900">
-                  Scene<span className="text-rose-600">O</span>
-                </span>
-              </div>
+              <Link href="/" className="inline-flex items-center">
+                <BrandLogo size="md" />
+              </Link>
               <p className="mt-3 text-xs text-slate-500 max-w-sm leading-relaxed">
                 India&apos;s 0% platform fee ticketing platform for independent film screenings, acoustic sessions, workshops, theater, and community cultural gatherings.
               </p>
@@ -633,6 +639,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">Platform</h4>
               <ul className="mt-3 space-y-2 text-xs text-slate-500">
+                <li><Link href="/passes" className="hover:text-rose-600 font-semibold text-slate-800 transition">🎟️ Find My Passes</Link></li>
                 <li><Link href="/explore" className="hover:text-slate-900 transition">Explore All Gigs</Link></li>
                 <li><Link href="/organizer/events/new" className="hover:text-slate-900 transition">+ Host Free Event</Link></li>
                 <li><Link href="/pricing" className="hover:text-slate-900 transition">0% Host Pricing</Link></li>
@@ -730,8 +737,34 @@ export default function HomePage() {
               />
             </div>
 
+            {/* Dynamic: Cities With Live Gigs */}
+            {activeCities.length > 0 && (
+              <div className="mt-4 border-b border-slate-100 pb-3">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Cities With Live Gigs ({activeCities.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeCities.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => handleSelectCity(c)}
+                      className={`rounded-full border px-3 py-1 text-xs font-bold transition shadow-2xs ${
+                        selectedCity.toLowerCase() === c.toLowerCase()
+                          ? "border-rose-500 bg-rose-50 text-rose-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Popular Cities Grid */}
-            <div className="mt-5">
+            <div className="mt-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">
                 <span>Popular Cultural Hubs</span>
                 <button

@@ -17,7 +17,14 @@ export const metadata: Metadata = {
   description: "The modern ticketing platform for community events, movie screenings, workshops, and acoustic music in India. Instant 2-tap UPI checkout, 0% host fees, and offline pass verification.",
   metadataBase: new URL("https://sceneo.in"),
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/logo.svg"],
   },
   openGraph: {
     title: "SceneO • Independent Events & Film Screenings",
@@ -26,7 +33,21 @@ export const metadata: Metadata = {
     siteName: "SceneO",
     locale: "en_IN",
     type: "website",
-  }
+    images: [
+      {
+        url: "/logo.png",
+        width: 1024,
+        height: 1024,
+        alt: "SceneO Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SceneO • Independent Events & Film Screenings",
+    description: "Find the gig. Grab your pass. Never miss a scene.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

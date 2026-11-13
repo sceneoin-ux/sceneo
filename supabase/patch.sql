@@ -3,12 +3,21 @@
 -- Run this once in Supabase Dashboard -> SQL Editor
 -- ====================================================================
 
--- 1. EXPAND VENUE TYPE CONSTRAINT (Allows Auditorium, Hall, Cultural Center, Studio)
+-- 1. SAFE COLUMN GUARDS (Ensures all fields exist without modifying existing data)
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS audi_screen_number TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS cover_charge_note TEXT DEFAULT 'Entry pass only.';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.organizers ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.organizers ADD COLUMN IF NOT EXISTS staff_scanner_pin TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS checked_in_count INT DEFAULT 0;
+
+-- 2. EXPAND VENUE TYPE CONSTRAINT (Allows Auditorium, Hall, Cultural Center, Studio, Club)
 ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_venue_type_check;
 ALTER TABLE public.events ADD CONSTRAINT events_venue_type_check 
   CHECK (venue_type IN ('auditorium', 'theater', 'hall', 'rooftop', 'cultural_center', 'studio', 'open_air', 'club', 'warehouse'));
 
--- 2. ENABLE COMPLETE ROW LEVEL SECURITY POLICIES FOR APP FUNCTIONALITY
+-- 3. ENABLE COMPLETE ROW LEVEL SECURITY POLICIES FOR APP FUNCTIONALITY
 -- Organizers
 DROP POLICY IF EXISTS "Public Read Organizers" ON public.organizers;
 DROP POLICY IF EXISTS "Public Insert Organizers" ON public.organizers;
@@ -70,5 +79,15 @@ ON public.security_logs FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Allow Read Security Logs" 
 ON public.security_logs FOR SELECT USING (TRUE);
 
--- 4. (OPTIONAL) EMPTY TEST/SEED DATA (Uncomment if you want a completely empty database)
+-- 4. HIGH-SCALE 10,000+ BOOKING CONCURRENCY INDEXES (1MS LOOKUP OPTIMIZATION)
+CREATE INDEX IF NOT EXISTS idx_orders_customer_phone ON public.orders(customer_phone);
+CREATE INDEX IF NOT EXISTS idx_orders_event_payment ON public.orders(event_id, payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_cf_order_id ON public.orders(cashfree_order_id);
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON public.orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_passes_order_id ON public.passes(order_id);
+CREATE INDEX IF NOT EXISTS idx_passes_token ON public.passes(pass_token);
+CREATE INDEX IF NOT EXISTS idx_events_published_date ON public.events(is_published, event_date);
+CREATE INDEX IF NOT EXISTS idx_ticket_tiers_event_id ON public.ticket_tiers(event_id);
+
+-- 5. (OPTIONAL) EMPTY TEST/SEED DATA (Uncomment if you want a completely empty database)
 -- TRUNCATE TABLE public.ticket_tiers, public.events, public.orders, public.passes, public.organizers CASCADE;

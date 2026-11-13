@@ -7,6 +7,11 @@ interface DbTierItem {
   sold_count?: number;
 }
 
+interface OrganizerItem {
+  name?: string;
+  is_verified?: boolean;
+}
+
 interface DbEventItem {
   id: string;
   slug: string;
@@ -21,10 +26,7 @@ interface DbEventItem {
   gates_open: string;
   poster_url?: string;
   ticket_tiers?: DbTierItem[];
-  organizers?: {
-    name?: string;
-    is_verified?: boolean;
-  };
+  organizers?: OrganizerItem | OrganizerItem[];
 }
 
 export async function GET(req: NextRequest) {
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("events")
-      .select("*, ticket_tiers(*), organizers(name, is_verified)")
+      .select("id, slug, title, category, venue_type, venue_name, audi_screen_number, city, address, event_date, gates_open, poster_url, ticket_tiers(price, total_capacity, sold_count), organizers(name, is_verified)")
       .eq("is_published", true)
       .order("event_date", { ascending: true });
 
@@ -51,7 +53,14 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.warn("Supabase event query issue:", error.message);
-      return NextResponse.json({ success: true, events: [] });
+      return NextResponse.json(
+        { success: true, events: [] },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30",
+          },
+        }
+      );
     }
 
     const formattedEvents = (dbEvents || []).map((evt: DbEventItem) => {
@@ -70,6 +79,8 @@ export async function GET(req: NextRequest) {
         ? "/banners/artisan-pottery.svg"
         : "/banners/acoustic-sunset.svg";
 
+      const organizerObj = Array.isArray(evt.organizers) ? evt.organizers[0] : evt.organizers;
+
       return {
         id: evt.id,
         slug: evt.slug,
@@ -81,8 +92,8 @@ export async function GET(req: NextRequest) {
         city: evt.city,
         startingPrice: minPrice,
         bannerUrl: evt.poster_url || defaultBanner,
-        organizer: evt.organizers?.name || "Independent Host",
-        verified: evt.organizers?.is_verified ?? true,
+        organizer: organizerObj?.name || "Independent Host",
+        verified: organizerObj?.is_verified ?? true,
         tag: evt.venue_type === "theater" ? "Theater Screening" : "Live & Selling",
         tagStyle: evt.venue_type === "theater" 
           ? "bg-purple-50 text-purple-700 border-purple-200/80"
@@ -90,10 +101,22 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      events: formattedEvents
-    });
+    const activeCities = Array.from(
+      new Set((dbEvents || []).map((e: DbEventItem) => e.city?.trim()).filter(Boolean))
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        events: formattedEvents,
+        activeCities: activeCities
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=20, stale-while-revalidate=120"
+        }
+      }
+    );
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Failed to fetch events";
     return NextResponse.json({ success: false, error: errorMsg, events: [] }, { status: 500 });

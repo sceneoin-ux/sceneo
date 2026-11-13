@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       title,
+      description,
       category,
       venueType,
       venueName,
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       tiers = []
     } = body;
 
-    if (process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_ACTIVATED !== "true") {
+    if (process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_ACTIVATED === "false") {
       return NextResponse.json(
         { error: "Host event creation is temporarily paused pending Cashfree payment gateway activation." },
         { status: 403 }
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
           email: `${hostPhone.replace(/\D/g, "")}@sceneo.temp`,
           upi_id: hostUpiId,
           staff_scanner_pin: Math.floor(1000 + Math.random() * 9000).toString(),
-          is_verified: true
+          is_verified: false
         })
         .select()
         .single();
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
         organizer_id: organizerId,
         slug: slug,
         title: title,
+        description: description || "Join us for this curated live experience.",
         category: category || "music",
         venue_type: venueType || "auditorium",
         venue_name: venueName,
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
         cover_charge_note: coverChargeNote || "Entry pass only.",
         outside_food_allowed: outsideFoodAllowed,
         seat_allocation_mode: venueType === "theater" ? "assigned_seating" : "general_admission",
-        is_published: process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_ACTIVATED === "true"
+        is_published: false // Gated pending mandatory Host KYC (Aadhaar & PAN) approval
       })
       .select()
       .single();
@@ -123,6 +125,8 @@ export async function POST(req: NextRequest) {
       success: true,
       eventId: event.id,
       slug: event.slug,
+      title: event.title,
+      isPendingKyc: true,
       publicUrl: `/e/${event.slug}`,
       organizerDashboardUrl: `/organizer/${event.slug}`
     });

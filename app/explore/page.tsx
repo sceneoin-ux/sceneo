@@ -16,6 +16,8 @@ import {
   ChevronDown, 
   Loader2
 } from "lucide-react";
+import { INDIAN_CITIES } from "@/config/cities";
+import { BrandLogo } from "@/components/BrandLogo";
 
 // Category Tabs Definition
 const CATEGORY_TABS = [
@@ -46,20 +48,7 @@ interface LiveEvent {
   tagStyle: string;
 }
 
-const INDIAN_CITIES = [
-  { name: "Hyderabad", state: "Telangana", lat: 17.3850, lng: 78.4867 },
-  { name: "Bengaluru", state: "Karnataka", lat: 12.9716, lng: 77.5946 },
-  { name: "Mumbai", state: "Maharashtra", lat: 19.0760, lng: 72.8777 },
-  { name: "Delhi NCR", state: "Delhi", lat: 28.6139, lng: 77.2090 },
-  { name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lng: 80.2707 },
-  { name: "Pune", state: "Maharashtra", lat: 18.5204, lng: 73.8567 },
-  { name: "Kolkata", state: "West Bengal", lat: 22.5726, lng: 88.3639 },
-  { name: "Goa", state: "Goa", lat: 15.2993, lng: 74.1240 },
-  { name: "Jaipur", state: "Rajasthan", lat: 26.9124, lng: 75.7873 },
-  { name: "Kochi", state: "Kerala", lat: 9.9312, lng: 76.2673 },
-  { name: "Chandigarh", state: "Punjab", lat: 30.7333, lng: 76.7794 },
-  { name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lng: 72.5714 }
-];
+
 
 function ExploreCardItem({ evt }: { evt: LiveEvent }) {
   const [imgSrc, setImgSrc] = useState(evt.bannerUrl);
@@ -147,6 +136,7 @@ function ExploreDirectoryContent() {
 
   // Live Events State
   const [events, setEvents] = useState<LiveEvent[]>([]);
+  const [activeCities, setActiveCities] = useState<string[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   // Fetch real events from Supabase / API
@@ -158,6 +148,9 @@ function ExploreDirectoryContent() {
       .then((data) => {
         if (isMounted) {
           setEvents(data.events || []);
+          if (Array.isArray(data.activeCities)) {
+            setActiveCities(data.activeCities);
+          }
           setIsLoadingEvents(false);
         }
       })
@@ -254,13 +247,8 @@ function ExploreDirectoryContent() {
                 <span className="hidden sm:inline">Home</span>
               </Link>
 
-              <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <span className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-slate-900 text-xs sm:text-sm font-black text-white shadow-xs">
-                  S
-                </span>
-                <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                  Scene<span className="text-rose-600">O</span>
-                </span>
+              <Link href="/" className="flex items-center shrink-0">
+                <BrandLogo size="md" />
               </Link>
 
               {/* City Pill */}
@@ -354,9 +342,21 @@ function ExploreDirectoryContent() {
         {/* ────────────────── FULL EVENTS GRID / EMPTY STATE ────────────────── */}
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           {isLoadingEvents ? (
-            <div className="py-20 text-center">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin text-rose-600" />
-              <p className="mt-3 text-xs font-semibold text-slate-500">Loading events...</p>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs animate-pulse">
+                  <div className="aspect-[16/9] w-full bg-slate-200" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-3 w-1/3 bg-slate-200 rounded" />
+                    <div className="h-4 w-4/5 bg-slate-200 rounded" />
+                    <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                    <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                      <div className="h-3 w-20 bg-slate-200 rounded" />
+                      <div className="h-4 w-12 bg-slate-200 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredEvents.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 sm:p-14 text-center shadow-xs">
@@ -407,10 +407,9 @@ function ExploreDirectoryContent() {
       {/* ────────────────── FOOTER ────────────────── */}
       <footer className="bg-white border-t border-slate-200 px-4 py-8 text-slate-600 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">S</span>
-            <span className="font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
-          </div>
+          <Link href="/" className="inline-flex items-center">
+            <BrandLogo size="xs" />
+          </Link>
           <div className="flex flex-wrap gap-4">
             <Link href="/" className="hover:text-slate-900">Home</Link>
             <Link href="/pricing" className="hover:text-slate-900">Pricing (0% Fee)</Link>
@@ -490,8 +489,34 @@ function ExploreDirectoryContent() {
               />
             </div>
 
+            {/* Dynamic: Cities With Live Gigs */}
+            {activeCities.length > 0 && (
+              <div className="mt-4 border-b border-slate-100 pb-3">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Cities With Live Gigs ({activeCities.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeCities.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => handleSelectCity(c)}
+                      className={`rounded-full border px-3 py-1 text-xs font-bold transition shadow-2xs ${
+                        selectedCity.toLowerCase() === c.toLowerCase()
+                          ? "border-rose-500 bg-rose-50 text-rose-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Popular Cities Grid */}
-            <div className="mt-5">
+            <div className="mt-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">
                 <span>Popular Cultural Hubs</span>
                 <button

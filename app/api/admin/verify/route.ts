@@ -39,7 +39,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { password } = body;
 
-    const masterPassword = process.env.ADMIN_MASTER_PASSWORD || "Cspl@2001";
+    const masterPassword = process.env.ADMIN_MASTER_PASSWORD;
+
+    if (!masterPassword) {
+      console.error("[SECURITY] ADMIN_MASTER_PASSWORD is not configured in environment variables.");
+      return NextResponse.json(
+        { success: false, error: "Admin authentication is not configured on server. Set ADMIN_MASTER_PASSWORD in Vercel." },
+        { status: 500 }
+      );
+    }
 
     if (!password || password !== masterPassword) {
       recordFailedAttempt(ip);

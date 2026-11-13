@@ -10,17 +10,24 @@ import {
   XCircle, 
   AlertTriangle, 
   ArrowLeft, 
-  Lock
+  Lock,
+  Users
 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface CachedPass {
   token: string;
+  orderNumber?: string;
+  customerPhone?: string;
   attendeeName: string;
   tierName: string;
   assignedSeat: string;
+  totalQuantity: number;
+  admittedCount: number;
   isCheckedIn: boolean;
   checkedInAt: string | null;
+  history?: Array<{ count: number; time: string }>;
 }
 
 export default function OfflineDoorScanner() {
@@ -68,6 +75,15 @@ export default function OfflineDoorScanner() {
     status: "VALID" | "ALREADY_SCANNED" | "INVALID";
     pass?: CachedPass;
     message?: string;
+  } | null>(null);
+
+  const [groupAdmitPrompt, setGroupAdmitPrompt] = useState<{
+    passIndex: number;
+    pass: CachedPass;
+    totalQty: number;
+    admittedSoFar: number;
+    remaining: number;
+    countToAdmit: number;
   } | null>(null);
 
   const [manualCode, setManualCode] = useState("");
@@ -171,7 +187,7 @@ export default function OfflineDoorScanner() {
     };
   }, []);
 
-  // 50ms Offline-First Pass Verification
+  // 50ms Offline-First Pass Verification with Multi-Guest Partial Entry Support
   const handlePassVerification = (scannedToken: string) => {
     let token = scannedToken.trim();
     if (token.includes("/")) {
@@ -182,9 +198,15 @@ export default function OfflineDoorScanner() {
       navigator.vibrate(60);
     }
 
-    const passIndex = guestlist.findIndex(
-      (p) => p.token.toLowerCase() === token.toLowerCase() || p.token.toLowerCase().includes(token.toLowerCase())
-    );
+    const cleanSearch = token.toLowerCase().replace(/\D/g, "");
+    const passIndex = guestlist.findIndex((p) => {
+      const matchToken =
+        p.token.toLowerCase() === token.toLowerCase() ||
+        p.token.toLowerCase().includes(token.toLowerCase());
+      const matchOrder = p.orderNumber && p.orderNumber.toLowerCase().includes(token.toLowerCase());
+      const matchPhone = cleanSearch.length >= 6 && p.customerPhone && p.customerPhone.includes(cleanSearch);
+      return matchToken || matchOrder || matchPhone;
+    });
 
     if (passIndex === -1) {
       if (token.startsWith("SC-") || token.length >= 6) {
@@ -193,7 +215,9 @@ export default function OfflineDoorScanner() {
           attendeeName: "Verified Attendee",
           tierName: "General Admission",
           assignedSeat: "Gate Access Verified",
-          isCheckedIn: false,
+          totalQuantity: 1,
+          admittedCount: 1,
+          isCheckedIn: true,
           checkedInAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         };
         setScanResult({ status: "VALID", pass: simulatedPass });
@@ -204,35 +228,81 @@ export default function OfflineDoorScanner() {
     }
 
     const targetPass = guestlist[passIndex];
+    const totalQty = targetPass.totalQuantity || 1;
+    const currentAdmitted = targetPass.admittedCount || (targetPass.isCheckedIn ? totalQty : 0);
+    const remaining = Math.max(0, totalQty - currentAdmitted);
 
-    if (targetPass.isCheckedIn) {
+    // If all guests in this booking already entered
+    if (remaining <= 0) {
       if (typeof navigator !== "undefined" && navigator.vibrate) {
         navigator.vibrate([100, 50, 100]);
       }
       setScanResult({
         status: "ALREADY_SCANNED",
         pass: targetPass,
-        message: `Already checked in at ${targetPass.checkedInAt || "earlier"}`
+        message: `All ${totalQty} guest(s) on this pass already admitted at ${targetPass.checkedInAt || "earlier"}. 0 passes remaining.`
       });
       return;
     }
 
+    // If it's a group booking with more than 1 ticket (e.g. 5 tickets):
+    if (totalQty > 1) {
+      setGroupAdmitPrompt({
+        passIndex,
+        pass: targetPass,
+        totalQty,
+        admittedSoFar: currentAdmitted,
+        remaining,
+        countToAdmit: remaining
+      });
+      return;
+    }
+
+    // For single-ticket passes, immediately admit
+    confirmAdmit(passIndex, 1);
+  };
+
+  const confirmAdmit = (passIndex: number, countToAdmit: number) => {
+    const targetPass = guestlist[passIndex];
+    const totalQty = targetPass.totalQuantity || 1;
+    const prevAdmitted = targetPass.admittedCount || (targetPass.isCheckedIn ? totalQty : 0);
+    const newAdmitted = Math.min(totalQty, prevAdmitted + countToAdmit);
+    const isNowFullyCheckedIn = newAdmitted >= totalQty;
     const checkInTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const newHistory = [...(targetPass.history || [])];
+    newHistory.push({ count: countToAdmit, time: checkInTime });
+
     const updatedList = [...guestlist];
     updatedList[passIndex] = {
       ...targetPass,
-      isCheckedIn: true,
-      checkedInAt: checkInTime
+      admittedCount: newAdmitted,
+      isCheckedIn: isNowFullyCheckedIn,
+      checkedInAt: checkInTime,
+      history: newHistory
     };
 
     setGuestlist(updatedList);
-    localStorage.setItem("sceneo_cached_guestlist", JSON.stringify(updatedList));
+    try {
+      localStorage.setItem("sceneo_cached_guestlist", JSON.stringify(updatedList));
+    } catch (storageErr) {
+      console.warn("Storage quota limit reached, persisting in memory:", storageErr);
+    }
+
+    const remainingLeft = totalQty - newAdmitted;
 
     setScanResult({
       status: "VALID",
-      pass: updatedList[passIndex]
+      pass: updatedList[passIndex],
+      message:
+        totalQty > 1
+          ? `Admitted ${countToAdmit} guest(s). (${newAdmitted} of ${totalQty} entered${
+              remainingLeft > 0 ? ` • ${remainingLeft} friend(s) can enter later` : " • FULLY REDEEMED"
+            })`
+          : undefined
     });
 
+    setGroupAdmitPrompt(null);
     queueScanForServerSync(targetPass.token, checkInTime);
   };
 
@@ -274,9 +344,8 @@ export default function OfflineDoorScanner() {
           <ArrowLeft className="h-4 w-4" />
           <span>Exit Scanner</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-xs font-bold text-white">S</span>
-          <span className="text-sm font-bold tracking-tight text-slate-900">Scene<span className="text-rose-600">O</span> Scanner</span>
+        <div className="flex items-center">
+          <BrandLogo size="xs" badge="Scanner" />
         </div>
         <div className="flex items-center gap-1.5 text-xs font-medium">
           {isOnline ? (
@@ -382,7 +451,7 @@ export default function OfflineDoorScanner() {
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Or type pass token (#SC-4821)"
+                placeholder="Type pass token, order #, or 10-digit mobile"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                 className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-rose-500"
@@ -413,6 +482,96 @@ export default function OfflineDoorScanner() {
             </button>
           </div>
         </main>
+      )}
+
+      {/* ────────────────── GROUP BOOKING ADMIT PROMPT MODAL ────────────────── */}
+      {groupAdmitPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center border-2 border-emerald-500 shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-3 border border-emerald-200">
+              <Users className="h-7 w-7" />
+            </div>
+
+            <h3 className="text-xl font-black text-slate-900">
+              Group Booking ({groupAdmitPrompt.totalQty} Passes)
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Guest: <strong>{groupAdmitPrompt.pass.attendeeName}</strong>
+            </p>
+
+            <div className="my-4 rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-left space-y-1.5">
+              <div className="flex items-center justify-between text-slate-700">
+                <span>Total in Booking:</span>
+                <span className="font-bold text-slate-900">{groupAdmitPrompt.totalQty} Tickets</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700">
+                <span>Already Entered:</span>
+                <span className="font-bold text-slate-900">{groupAdmitPrompt.admittedSoFar} Guest(s)</span>
+              </div>
+              <div className="flex items-center justify-between text-emerald-700 font-bold border-t border-slate-200 pt-1.5">
+                <span>Available to Enter Now:</span>
+                <span>{groupAdmitPrompt.remaining} Guest(s)</span>
+              </div>
+              {groupAdmitPrompt.admittedSoFar > 0 && (
+                <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 rounded-lg p-2 border border-amber-200 leading-snug">
+                  ℹ️ Staggered Arrival: Earlier group arrived at {groupAdmitPrompt.pass.checkedInAt}.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Guests Entering Right Now:
+              </label>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setGroupAdmitPrompt((prev) =>
+                      prev ? { ...prev, countToAdmit: Math.max(1, prev.countToAdmit - 1) } : null
+                    )
+                  }
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-lg font-bold hover:bg-slate-200 transition"
+                >
+                  -
+                </button>
+                <span className="flex h-11 min-w-[70px] items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-xl font-black text-slate-900">
+                  {groupAdmitPrompt.countToAdmit}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setGroupAdmitPrompt((prev) =>
+                      prev
+                        ? { ...prev, countToAdmit: Math.min(prev.remaining, prev.countToAdmit + 1) }
+                        : null
+                    )
+                  }
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-lg font-bold hover:bg-slate-200 transition"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => confirmAdmit(groupAdmitPrompt.passIndex, groupAdmitPrompt.countToAdmit)}
+                className="w-full rounded-2xl bg-emerald-600 py-3.5 text-sm font-bold text-white shadow-md hover:bg-emerald-500 uppercase tracking-wider transition"
+              >
+                Admit {groupAdmitPrompt.countToAdmit} Guest{groupAdmitPrompt.countToAdmit > 1 ? "s" : ""} →
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupAdmitPrompt(null)}
+                className="w-full rounded-xl py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ────────────────── RESULT POPUP MODAL (LIGHT THEME) ────────────────── */}

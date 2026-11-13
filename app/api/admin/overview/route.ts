@@ -16,9 +16,13 @@ interface DbEventItem {
   audi_screen_number?: string;
   city: string;
   event_date: string;
+  is_published?: boolean;
   ticket_tiers?: DbTierItem[];
   organizers?: {
     name?: string;
+    phone?: string;
+    upi_id?: string;
+    is_verified?: boolean;
   };
 }
 
@@ -49,11 +53,19 @@ function maskPhone(phone: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const masterPassword = process.env.ADMIN_MASTER_PASSWORD || "Cspl@2001";
+    const masterPassword = process.env.ADMIN_MASTER_PASSWORD;
+    if (!masterPassword) {
+      console.error("[SECURITY] ADMIN_MASTER_PASSWORD is not configured in environment variables.");
+      return NextResponse.json(
+        { success: false, error: "Admin authentication not configured on server. Set ADMIN_MASTER_PASSWORD in Vercel." },
+        { status: 500 }
+      );
+    }
+
     const expectedToken = crypto.createHmac("sha256", masterPassword).update("sceneo-admin-active-session").digest("hex");
     const clientToken = req.headers.get("x-admin-token");
 
-    if (!clientToken || clientToken !== expectedToken) {
+    if (!clientToken || (clientToken !== expectedToken && clientToken !== masterPassword)) {
       return NextResponse.json(
         { success: false, error: "Unauthorized. Admin authentication token required." },
         { status: 401 }
@@ -91,6 +103,10 @@ export async function GET(req: NextRequest) {
         audi_screen_number: ev.audi_screen_number,
         city: ev.city,
         organizerName: ev.organizers?.name || "Independent Host",
+        organizerPhone: ev.organizers?.phone || "",
+        organizerUpi: ev.organizers?.upi_id || "",
+        organizerVerified: ev.organizers?.is_verified ?? false,
+        is_published: ev.is_published ?? false,
         event_date: ev.event_date,
         totalCapacity,
         ticketsSold: 0,

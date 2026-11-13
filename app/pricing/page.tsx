@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Check, Sparkles } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function PricingPage() {
   return (
@@ -12,10 +13,9 @@ export default function PricingPage() {
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">S</span>
-            <span className="text-base font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="sm" />
+          </Link>
         </div>
       </header>
 

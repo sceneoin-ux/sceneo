@@ -68,32 +68,39 @@ export async function GET(req: NextRequest) {
       ? "/banners/artisan-pottery.svg"
       : "/banners/acoustic-sunset.svg";
 
-    return NextResponse.json({
-      success: true,
-      event: {
-        id: event.id,
-        slug: event.slug,
-        title: event.title,
-        category: event.category,
-        date: formattedDate,
-        time: event.gates_open || "Doors Open",
-        venueName: event.venue_name,
-        address: event.address || event.venue_name,
-        city: event.city || "India",
-        bannerUrl: event.poster_url || defaultBanner,
-        organizerName: event.organizers?.name || "Independent Host",
-        organizerVerified: event.organizers?.is_verified ?? true,
-        description: event.description || "Join us for this curated live experience.",
-        hasCoverCharge: Boolean(event.cover_charge_note && event.cover_charge_note !== "No mandatory cover charge."),
-        coverChargeAmount: 0,
-        coverChargeNotes: event.cover_charge_note || "No mandatory cover charge.",
-        ageRestriction: event.age_restriction || "All Ages",
-        dressCode: "Casuals",
-        audiScreenNumber: event.audi_screen_number,
-        isPublished: event.is_published,
-        tiers: formattedTiers
+    return NextResponse.json(
+      {
+        success: true,
+        event: {
+          id: event.id,
+          slug: event.slug,
+          title: event.title,
+          category: event.category,
+          date: formattedDate,
+          time: event.gates_open || "Doors Open",
+          venueName: event.venue_name,
+          address: event.address || event.venue_name,
+          city: event.city || "India",
+          bannerUrl: event.poster_url || defaultBanner,
+          organizerName: event.organizers?.name || "Independent Host",
+          organizerVerified: event.organizers?.is_verified ?? true,
+          description: event.description || "Join us for this curated live experience.",
+          hasCoverCharge: Boolean(event.cover_charge_note && event.cover_charge_note !== "No mandatory cover charge."),
+          coverChargeAmount: 0,
+          coverChargeNotes: event.cover_charge_note || "No mandatory cover charge.",
+          ageRestriction: event.age_restriction || "All Ages",
+          dressCode: "Casuals",
+          audiScreenNumber: event.audi_screen_number,
+          isPublished: event.is_published,
+          tiers: formattedTiers
+        }
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60"
+        }
       }
-    });
+    );
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Failed to load event";
     return NextResponse.json({ success: false, error: errorMsg }, { status: 500 });

@@ -79,8 +79,11 @@ export async function sendTicketEmail(payload: TicketEmailPayload) {
             </p>
           </div>
           <div class="footer">
-            SceneO Technologies • Rule 33 CGST Pure Agent Compliance<br>
-            Have questions? Email sceneo.in@gmail.com
+            SceneO Technologies • Pure Agent Technology Intermediary<br>
+            <span style="font-size: 10px; color: #94A3B8; display: block; margin-top: 4px;">
+              Notice: Ticket face value is collected in trust on behalf of the event host under Rule 33 of CGST Rules, 2017. Platform convenience fee is charged by SceneO for technology services.
+            </span>
+            Have questions? Email sceneo.in@gmail.com • Helpline: +91 81437 49379
           </div>
         </div>
       </body>

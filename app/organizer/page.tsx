@@ -20,6 +20,7 @@ import {
   Lock
 } from "lucide-react";
 import { sendPhoneOTP, verifyPhoneOTP, getFirebaseConfig } from "@/lib/firebase";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface HostedEvent {
   id: string;
@@ -165,13 +166,8 @@ export default function OrganizerHubPage() {
         {/* Navigation */}
         <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white shadow-sm">
-                S
-              </span>
-              <span className="text-xl font-bold tracking-tight text-slate-900">
-                Scene<span className="text-rose-600">O</span>
-              </span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="md" />
             </Link>
 
             <Link
@@ -378,13 +374,8 @@ export default function OrganizerHubPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white shadow-sm">
-                S
-              </span>
-              <span className="text-xl font-bold tracking-tight text-slate-900">
-                Scene<span className="text-rose-600">O</span>
-              </span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="md" />
             </Link>
             <span className="hidden sm:inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
               Host Portal

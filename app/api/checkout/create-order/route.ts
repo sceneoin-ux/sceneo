@@ -14,6 +14,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const safeQuantity = Math.max(1, Math.min(10, Math.floor(Number(quantity) || 1)));
+    const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+
+    if (cleanPhone.length !== 10) {
+      return NextResponse.json(
+        { error: "Please provide a valid 10-digit Indian mobile number." },
+        { status: 400 }
+      );
+    }
+
     let tierPrice = 0;
     let tierSlug = "";
 
@@ -32,6 +42,39 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // 1b. Guard against unpublished / draft events
+      if (dbTier.events && dbTier.events.is_published === false) {
+        return NextResponse.json(
+          { error: "This event is currently under review by SceneO and is not yet open for public bookings." },
+          { status: 403 }
+        );
+      }
+
+      // 1c. Guard against concluded past events (> 3 hours past event time)
+      if (dbTier.events?.event_date && new Date(dbTier.events.event_date).getTime() < Date.now() - 3600000 * 3) {
+        return NextResponse.json(
+          { error: "Ticket booking is closed. This event has already taken place." },
+          { status: 400 }
+        );
+      }
+
+      // 1d. Strict Sold-Out / Overbooking Guard
+      const totalCapacity = Number(dbTier.total_capacity || 0);
+      const soldCount = Number(dbTier.sold_count || 0);
+      const available = Math.max(0, totalCapacity - soldCount);
+
+      if (available < safeQuantity) {
+        return NextResponse.json(
+          {
+            error:
+              available === 0
+                ? "This ticket tier is completely SOLD OUT."
+                : `Only ${available} pass(es) remaining for this tier.`
+          },
+          { status: 400 }
+        );
+      }
+
       tierPrice = Number(dbTier.price);
       tierSlug = dbTier.events?.slug || "";
     } catch {
@@ -41,14 +84,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Price & Convenience Fee Calculation (Locked 5.5% with min ₹15 floor)
-    const baseTicketPrice = tierPrice * quantity;
+    // 2. Price & Convenience Fee Calculation (Locked 5.5% with min ₹15 floor, Free events ₹0)
+    const baseTicketPrice = tierPrice * safeQuantity;
     const rawFee = (baseTicketPrice * siteConfig.platformFeePercent) / 100;
-    const convenienceFee = Math.max(siteConfig.minPlatformFee, Math.round(rawFee * 100) / 100);
+    const convenienceFee = baseTicketPrice === 0 ? 0 : Math.max(siteConfig.minPlatformFee, Math.round(rawFee * 100) / 100);
     const totalAmount = Math.round((baseTicketPrice + convenienceFee) * 100) / 100;
 
-    // 3. Generate Order Number
+    // 3. Generate Order Number & Cashfree Order ID
     const orderNumber = `SC-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+    const cfOrderId = `CF_${orderNumber.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
     const syntheticOrderId = `ord_${Date.now()}_${Math.floor(Math.random() * 9000 + 1000)}`;
 
     let orderId = syntheticOrderId;
@@ -61,12 +105,13 @@ export async function POST(req: NextRequest) {
           .from("orders")
           .insert({
             order_number: orderNumber,
+            cashfree_order_id: cfOrderId,
             event_id: eventId,
             tier_id: tierId,
             customer_name: customerName,
-            customer_phone: customerPhone,
-            customer_email: customerEmail || `${customerPhone}@sceneo.temp`,
-            quantity: quantity,
+            customer_phone: cleanPhone,
+            customer_email: customerEmail || `${cleanPhone}@sceneo.temp`,
+            quantity: safeQuantity,
             ticket_price: baseTicketPrice,
             convenience_fee: convenienceFee,
             total_paid: totalAmount,
@@ -97,7 +142,6 @@ export async function POST(req: NextRequest) {
           : "https://sandbox.cashfree.com/pg/orders";
 
       try {
-        const cfOrderId = `CF_${orderNumber.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
         const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || siteConfig.url;
         const cfResponse = await fetch(baseUrl, {
           method: "POST",
@@ -140,6 +184,7 @@ export async function POST(req: NextRequest) {
       success: true,
       orderId: orderId,
       orderNumber: orderNumber,
+      cfOrderId: cfOrderId,
       totalAmount: totalAmount,
       ticketPrice: baseTicketPrice,
       convenienceFee: convenienceFee,

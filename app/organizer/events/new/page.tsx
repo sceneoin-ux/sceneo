@@ -12,11 +12,14 @@ import {
   Sparkles, 
   Layers,
   Upload,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { INDIAN_CITIES } from "@/config/cities";
 import { uploadFlyerToCloudinary } from "@/lib/cloudinary";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface TicketTierInput {
   name: string;
@@ -28,11 +31,14 @@ interface TicketTierInput {
 export default function CreateEventPage() {
   // Basic Details
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("screening");
-  const [venueType, setVenueType] = useState<"auditorium" | "theater" | "hall" | "rooftop">("auditorium");
+  const [venueType, setVenueType] = useState<"auditorium" | "theater" | "hall" | "rooftop" | "club">("auditorium");
   const [venueName, setVenueName] = useState("");
   const [audiScreenNumber, setAudiScreenNumber] = useState("");
   const [city, setCity] = useState("Hyderabad");
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCity, setCustomCity] = useState("");
   const [address, setAddress] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [gatesOpen, setGatesOpen] = useState("08:00 PM");
@@ -110,11 +116,12 @@ export default function CreateEventPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          description,
           category,
           venueType,
           venueName,
           audiScreenNumber: venueType === "theater" ? audiScreenNumber || "Audi 1" : undefined,
-          city,
+          city: isCustomCity ? (customCity.trim() || "India") : city,
           address,
           eventDate,
           gatesOpen,
@@ -152,10 +159,9 @@ export default function CreateEventPage() {
             <ArrowLeft className="h-4 w-4" />
             <span>Cancel & Back</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-xs font-bold text-white">S</span>
-            <span className="text-base font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="sm" />
+          </Link>
           <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
             0% Commission Host Fee
           </span>
@@ -214,20 +220,21 @@ export default function CreateEventPage() {
                 placeholder="e.g. Cinema Society: Indie Classics Screening / Sunset Acoustic Session"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
               />
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Venue Full Address
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Plot 42, Road No 36, Jubilee Hills"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
-                />
-              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Event Description & Overview
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Tell attendees what makes this experience special, artist lineup, schedule, or what to bring..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs resize-y"
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -238,13 +245,14 @@ export default function CreateEventPage() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
                 >
-                  <option value="music">Live Music & Indie Acoustic Band</option>
-                  <option value="electronic">Electronic Music Session</option>
-                  <option value="theater_screening">Movie Theater Screening & Fan Show</option>
-                  <option value="standup">Standup Comedy Special</option>
-                  <option value="workshop">Cultural Meetup & Workshop</option>
+                  <option value="screening">🎬 Film Screening & Fan Premiere</option>
+                  <option value="music">🎵 Live Music & Indie Acoustic Band</option>
+                  <option value="workshop">🎨 Workshops & Masterclasses</option>
+                  <option value="theater">🎭 Theater, Play & Standup Comedy</option>
+                  <option value="cultural">✨ Cultural Gatherings & Indie Meetup</option>
+                  <option value="electronic">🎧 Electronic Music & DJ Session</option>
                 </select>
               </div>
 
@@ -254,20 +262,21 @@ export default function CreateEventPage() {
                 </label>
                 <select
                   value={venueType}
-                  onChange={(e) => setVenueType(e.target.value as "auditorium" | "theater" | "hall" | "rooftop")}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
+                  onChange={(e) => setVenueType(e.target.value as "auditorium" | "theater" | "hall" | "rooftop" | "club")}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
                 >
-                  <option value="auditorium">Auditorium / Cultural Center</option>
-                  <option value="theater">🎬 Cinema Screening / Multiplex Audi</option>
-                  <option value="hall">Acoustic Hall / Studio Space</option>
-                  <option value="rooftop">Open-Air Amphitheater / Lawn</option>
+                  <option value="hall">☕ Cafe, Bistro & Indie Coffeehouse</option>
+                  <option value="club">🍸 Pub, Bar, Brewery & Club Lounge</option>
+                  <option value="rooftop">🌿 Open-Air Rooftop, Lawn & Amphitheater</option>
+                  <option value="auditorium">🏛️ Auditorium, Cultural Center & Concert Hall</option>
+                  <option value="theater">🎬 Cinema Screening & Multiplex Audi</option>
                 </select>
               </div>
             </div>
 
             {/* DYNAMIC THEATER AUDI NUMBER */}
             {venueType === "theater" && (
-              <div className="rounded-xl bg-purple-50 border border-purple-200 p-4 space-y-3">
+              <div className="rounded-xl bg-purple-50/80 border border-purple-200 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-purple-900">
                   <Film className="h-4 w-4 text-purple-600" />
                   <span>Movie Theater Settings</span>
@@ -314,36 +323,88 @@ export default function CreateEventPage() {
                   placeholder="e.g. Prasad's Multiplex / The Foundry"
                   value={venueName}
                   onChange={(e) => setVenueName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  City
-                </label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
-                >
-                  <option value="Hyderabad">Hyderabad</option>
-                  <option value="Bengaluru">Bengaluru</option>
-                  <option value="Mumbai">Mumbai</option>
-                  <option value="Goa">Goa</option>
-                  <option value="Delhi NCR">Delhi NCR</option>
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    City *
+                  </label>
+                  {!isCustomCity ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomCity(true)}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
+                    >
+                      + Other City
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomCity(false);
+                        setCustomCity("");
+                      }}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      Choose from list
+                    </button>
+                  )}
+                </div>
+
+                {!isCustomCity ? (
+                  <select
+                    value={city}
+                    onChange={(e) => {
+                      if (e.target.value === "CUSTOM") {
+                        setIsCustomCity(true);
+                      } else {
+                        setCity(e.target.value);
+                      }
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
+                  >
+                    <optgroup label="Popular Entertainment Hubs">
+                      {INDIAN_CITIES.filter((c) => c.isPopular).map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name} ({c.state})
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="All Cities Across India">
+                      {INDIAN_CITIES.filter((c) => !c.isPopular).map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name} ({c.state})
+                        </option>
+                      ))}
+                    </optgroup>
+                    <option value="CUSTOM">+ Enter Custom City / Town...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter city / town name (e.g. Udaipur, Guntur, Pondicherry)"
+                    value={customCity}
+                    onChange={(e) => setCustomCity(e.target.value)}
+                    className="w-full rounded-xl border border-rose-300 bg-rose-50/20 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
+                  />
+                )}
               </div>
-              <div>
+
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Venue Full Address
+                  Venue Full Address *
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Plot 42, Road No 36, Jubilee Hills"
+                  required
+                  placeholder="e.g. Plot 42, Road No 36, Jubilee Hills, Hyderabad"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-rose-500 focus:outline-none transition shadow-2xs"
                 />
               </div>
             </div>
@@ -413,7 +474,21 @@ export default function CreateEventPage() {
                       <CheckCircle2 className="h-4 w-4" />
                       <span>{uploadSuccess ? "Uploaded & Optimized via Cloudinary" : "Flyer Loaded"}</span>
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-400">Click or drop a different image to replace</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-[11px] text-slate-400">Click to change</span>
+                      <span className="text-[11px] text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPosterUrl("");
+                          setUploadSuccess(false);
+                        }}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline z-10"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center text-center">
@@ -625,40 +700,86 @@ export default function CreateEventPage() {
 
       </main>
 
-      {/* ────────────────── SUCCESS MODAL ────────────────── */}
+      {/* ────────────────── HOST KYC SUBMISSION MODAL ────────────────── */}
       {publishedSlug && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-4 border border-emerald-200">
-              <CheckCircle2 className="h-8 w-8" />
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3 border border-amber-200">
+              <ShieldCheck className="h-7 w-7" />
             </div>
 
             <h3 className="text-xl font-black text-slate-900">
-              {GATEWAY_STATUS.isActivated ? "Your Event is Live! 🎉" : "Event Draft Saved! 📋"}
+              Event Registered for Verification 🛡️
             </h3>
-            <p className="mt-1 text-xs text-slate-500">
-              {GATEWAY_STATUS.isActivated
-                ? "Tickets are now on sale. Share this link with your community on Instagram & WhatsApp."
-                : "Your event draft is registered. Public ticket sales will activate automatically once payment gateway merchant verification is complete."}
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              To protect attendees from fraud and activate direct 100% bank payouts, please submit your host identification (Aadhaar & PAN card) to SceneO Verification Team.
             </p>
 
-            <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-mono text-slate-800 break-all select-all">
-              {siteConfig.url}/e/{publishedSlug}
+            {/* KYC Instructions Card */}
+            <div className="mt-4 text-left rounded-2xl bg-slate-50 border border-slate-200 p-4 text-xs space-y-2">
+              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] text-white font-bold">1</span>
+                <span>Send Aadhaar & PAN Card (Photo / PDF)</span>
+              </div>
+              <p className="text-[11px] text-slate-500 pl-6.5">
+                Our verification desk checks your ID and links your UPI ({hostUpiId || "UPI ID"}) for direct split settlements.
+              </p>
+
+              <div className="font-bold text-slate-900 flex items-center gap-1.5 pt-1">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] text-white font-bold">2</span>
+                <span>Approval Time: 15 to 30 Minutes</span>
+              </div>
+              <p className="text-[11px] text-slate-500 pl-6.5">
+                Once reviewed, your event automatically goes live for public booking across India!
+              </p>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2.5">
-              <Link
-                href={`/e/${publishedSlug}`}
-                className="w-full rounded-xl bg-slate-900 py-3 text-xs font-bold text-white hover:bg-slate-800 transition"
+            <div className="mt-4 rounded-xl bg-slate-100/80 border border-slate-200 px-3 py-2 text-[11px] font-mono text-slate-600 break-all select-all">
+              Private Draft: {siteConfig.url}/e/{publishedSlug}
+            </div>
+
+            {/* Actions */}
+            <div className="mt-5 flex flex-col gap-2.5">
+              <a
+                href={`https://wa.me/918143749379?text=${encodeURIComponent(
+                  `Hi SceneO Verification Desk,\n\nI just hosted a new event: *${title}*\n` +
+                  `📍 Venue: ${venueName} (${city})\n` +
+                  `📅 Date: ${eventDate}\n` +
+                  `👤 Host: ${hostName} (${hostPhone})\n` +
+                  `💳 Payout UPI: ${hostUpiId}\n` +
+                  `🔗 Event Link: ${siteConfig.url}/e/${publishedSlug}\n\n` +
+                  `Attached are my Aadhaar and PAN card copies for host approval.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition"
               >
-                Preview Event Page
-              </Link>
-              <Link
-                href="/organizer"
-                className="w-full rounded-xl bg-rose-600 py-3 text-xs font-bold text-white hover:bg-rose-500 transition"
+                <span>💬 Submit Aadhaar & PAN on WhatsApp (+91 81437 49379)</span>
+              </a>
+
+              <a
+                href={`mailto:sceneo.in@gmail.com?subject=${encodeURIComponent(`Host KYC Verification: ${title}`)}&body=${encodeURIComponent(
+                  `Hi SceneO Team,\n\nHere are my KYC details for event: ${title}\nHost Name: ${hostName}\nPhone: ${hostPhone}\nUPI ID: ${hostUpiId}\nSlug: ${publishedSlug}\n\nAttached: Aadhaar & PAN.`
+                )}`}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
               >
-                Go to Organizer Dashboard
-              </Link>
+                <span>✉️ Email Documents to sceneo.in@gmail.com</span>
+              </a>
+
+              <div className="flex gap-2">
+                <Link
+                  href={`/e/${publishedSlug}`}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition text-center"
+                >
+                  Preview Draft
+                </Link>
+                <Link
+                  href="/organizer"
+                  className="flex-1 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition text-center"
+                >
+                  Host Dashboard
+                </Link>
+              </div>
             </div>
           </div>
         </div>

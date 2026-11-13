@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface CashfreeModalInstance {
   checkout: (opts: { paymentSessionId: string; redirectTarget: string }) => Promise<{
@@ -81,9 +82,15 @@ function EventBookingContent() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [attendeeName, setAttendeeName] = useState("");
   const [attendeePhone, setAttendeePhone] = useState("");
+  const [attendeeEmail, setAttendeeEmail] = useState("");
   const [agreedToCover, setAgreedToCover] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutComplete, setCheckoutComplete] = useState(false);
+  const [confirmedOrder, setConfirmedOrder] = useState<{
+    orderNumber?: string;
+    passToken?: string;
+    assignedSeat?: string;
+  } | null>(null);
 
   // Fetch Event from Supabase API
   useEffect(() => {
@@ -170,11 +177,33 @@ function EventBookingContent() {
           quantity: selectedQty,
           customerName: attendeeName || "Guest Attendee",
           customerPhone: attendeePhone || "9988776655",
-          customerEmail: `${(attendeePhone || "9988776655").replace(/\D/g, "")}@sceneo.temp`
+          customerEmail: attendeeEmail || `${(attendeePhone || "9988776655").replace(/\D/g, "")}@sceneo.temp`
         })
       });
 
       const orderData = await res.json();
+
+      // Helper to verify payment status
+      const verifyOrder = async (orderId: string, isMock: boolean) => {
+        try {
+          const verifyUrl = `/api/checkout/verify?orderId=${encodeURIComponent(orderId)}${isMock ? "&mock=true" : ""}`;
+          const vRes = await fetch(verifyUrl);
+          if (vRes.ok) {
+            const vData = await vRes.json();
+            if (vData.paymentStatus === "PAID") {
+              setConfirmedOrder({
+                orderNumber: vData.orderNumber,
+                passToken: vData.pass?.pass_token,
+                assignedSeat: vData.pass?.assigned_seat
+              });
+              return true;
+            }
+          }
+        } catch (e) {
+          console.warn("[Verify Check Error]:", e);
+        }
+        return false;
+      };
 
       // 2. Open Cashfree UPI Seamless Sheet
       if (typeof window !== "undefined" && window.Cashfree && orderData.paymentSessionId) {
@@ -185,20 +214,36 @@ function EventBookingContent() {
             paymentSessionId: orderData.paymentSessionId,
             redirectTarget: "_modal"
           })
-          .then(() => {
+          .then(async () => {
+            // Verify immediately
+            let paid = await verifyOrder(orderData.orderId, false);
+            if (!paid) {
+              await new Promise((r) => setTimeout(r, 1500));
+              paid = await verifyOrder(orderData.orderId, false);
+            }
+            if (!paid) {
+              await new Promise((r) => setTimeout(r, 1500));
+              paid = await verifyOrder(orderData.orderId, false);
+            }
+
             setIsProcessing(false);
-            setCheckoutComplete(true);
+            if (paid) {
+              setCheckoutComplete(true);
+            } else {
+              alert(
+                "Payment is processing or was cancelled. If debited, your pass will appear under '🎟️ My Passes' (sceneo.in/passes)."
+              );
+            }
           });
       } else {
-        setTimeout(() => {
-          setIsProcessing(false);
-          setCheckoutComplete(true);
-        }, 1200);
+        // Fallback simulation (when test mock or direct verification)
+        await verifyOrder(orderData.orderId, true);
+        setIsProcessing(false);
+        setCheckoutComplete(true);
       }
     } catch (err) {
       console.error("Checkout error:", err);
       setIsProcessing(false);
-      setCheckoutComplete(true);
     }
   };
 
@@ -223,7 +268,9 @@ function EventBookingContent() {
               <ArrowLeft className="h-4 w-4" />
               <span>Back to SceneO</span>
             </Link>
-            <span className="text-sm font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="xs" />
+            </Link>
           </div>
         </header>
 
@@ -264,10 +311,9 @@ function EventBookingContent() {
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Events</span>
           </Link>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-xs font-bold text-white">S</span>
-            <span className="text-base font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="xs" />
+          </Link>
         </div>
       </header>
 
@@ -306,7 +352,7 @@ function EventBookingContent() {
                   </div>
                 </div>
                 <div className="mt-2 text-[10px] font-mono font-bold tracking-widest text-slate-600">
-                  CODE: SCENEO-PASS-VERIFIED
+                  CODE: {confirmedOrder?.passToken || "SCENEO-PASS-VERIFIED"}
                 </div>
               </div>
 
@@ -317,6 +363,11 @@ function EventBookingContent() {
                   <span>Guest: <strong>{attendeeName || "Attendee"}</strong></span>
                   <span>Qty: <strong>{totalTickets} Pass(es)</strong></span>
                 </div>
+                {confirmedOrder?.assignedSeat && (
+                  <div className="mt-1 text-[11px] font-bold text-emerald-700">
+                    Seat: {confirmedOrder.assignedSeat}
+                  </div>
+                )}
                 <div className="mt-1 text-[11px] text-slate-500">
                   Venue: {eventData.venueName}
                 </div>
@@ -332,6 +383,31 @@ function EventBookingContent() {
 
             {/* Quick Action Buttons */}
             <div className="mt-6 flex flex-col gap-2.5">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `🎟️ *SceneO Entry Pass Confirmed!*\n\n` +
+                  `*Event:* ${eventData.title}\n` +
+                  `*Guest:* ${attendeeName || "Attendee"}\n` +
+                  `*Passes:* ${totalTickets} Ticket(s)\n` +
+                  `*Venue:* ${eventData.venueName}\n` +
+                  `*Date:* ${eventData.date}\n\n` +
+                  `Show this dynamic live pass at the gate: https://sceneo.in/passes?phone=${(attendeePhone || "").replace(/\D/g, "").slice(-10)}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-xs hover:bg-emerald-500 transition"
+              >
+                <span>💬 Send Pass to My WhatsApp</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+              >
+                <span>🖨️ Save / Print Pass</span>
+              </button>
+
               <Link
                 href="/"
                 className="w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 text-center"
@@ -341,7 +417,7 @@ function EventBookingContent() {
             </div>
 
             <div className="mt-4 text-[11px] text-slate-400">
-              A copy of your ticket and invoice has been registered to {attendeePhone || "your mobile"}.
+              Your booking is registered in the gate scanner guestlist for {attendeePhone || "your mobile"}. Click above to send to WhatsApp or save.
             </div>
           </div>
         ) : (
@@ -406,9 +482,19 @@ function EventBookingContent() {
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                     <MapPin className="h-5 w-5 text-rose-600" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-slate-900">{eventData.venueName}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{eventData.address}</div>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${eventData.venueName}, ${eventData.address}, ${eventData.city}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                    >
+                      <span>📍 Open in Google Maps →</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -573,6 +659,19 @@ function EventBookingContent() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-xs font-semibold text-slate-900 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     />
                     <p className="mt-1 text-[10px] text-slate-400">Pass and invoice texted instantly to this number.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Email Address <span className="text-[10px] font-normal text-slate-400">(for instant pass copy &amp; invoice)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={attendeeEmail}
+                      onChange={(e) => setAttendeeEmail(e.target.value)}
+                      placeholder="name@gmail.com"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-xs font-semibold text-slate-900 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
                   </div>
 
                   {eventData.hasCoverCharge && (
