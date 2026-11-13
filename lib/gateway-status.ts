@@ -1,10 +1,10 @@
 /**
  * SceneO Payment Gateway Activation Status
- * Set to true once Cashfree merchant account activation is approved.
+ * Set to true for live/test checkout activation.
  */
 export const GATEWAY_STATUS = {
-  isActivated: process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_ACTIVATED === "true" || false,
+  isActivated: true,
   gatewayName: "Cashfree Payments India (RBI Regulated)",
-  statusLabel: "Under Verification",
-  notice: "Ticket checkout and live event publishing will unlock automatically once payment gateway merchant verification is complete."
+  statusLabel: "Active & Verified",
+  notice: "Cashfree Payment Gateway is active. Ticket checkouts are enabled."
 };
