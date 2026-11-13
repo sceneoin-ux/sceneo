@@ -28,8 +28,8 @@ export function BrandLogo({
     },
     md: {
       dimension: 34,
-      boxClass: "h-8 w-8 sm:h-9 sm:w-9",
-      textClass: "text-lg sm:text-xl font-bold tracking-tight",
+      boxClass: "h-7 w-7 sm:h-9 sm:w-9",
+      textClass: "text-base sm:text-xl font-bold tracking-tight",
     },
     lg: {
       dimension: 44,
@@ -39,7 +39,7 @@ export function BrandLogo({
   }[size];
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-1.5 sm:gap-2 ${className}`}>
       <div className={`relative ${config.boxClass} shrink-0 overflow-hidden rounded-xl shadow-xs transition-transform hover:scale-105`}>
         <Image
           src="/logo.svg"

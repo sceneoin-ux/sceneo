@@ -284,7 +284,7 @@ export default function HomePage() {
 
       {/* ────────────────── 2. CLEAN EDITORIAL HEADER ────────────────── */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-3.5 py-2.5 sm:px-6 sm:py-3.5 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 sm:py-3.5 lg:px-8">
           
           {/* Left: Brand & City Selector */}
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -296,41 +296,43 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setIsCityModalOpen(true)}
-              className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-800 transition hover:bg-slate-100 hover:border-slate-300 shadow-2xs shrink-0"
+              className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-800 transition hover:bg-slate-100 hover:border-slate-300 shadow-2xs shrink-0 cursor-pointer"
               title="Click to detect live GPS location or search city"
             >
               <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-600 shrink-0" />
-              <span className="max-w-[85px] xs:max-w-[130px] sm:max-w-none truncate">{selectedCity}</span>
+              <span className="max-w-[70px] sm:max-w-none truncate">{selectedCity}</span>
               <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
             </button>
           </div>
 
           {/* Right: Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* My Passes - Icon pill on mobile, full label on desktop */}
             <Link
               href="/passes"
-              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 shrink-0"
               title="Retrieve your booked passes anytime by phone number"
             >
-              <Ticket className="h-3.5 w-3.5 text-rose-500" />
-              <span>My Passes</span>
+              <Ticket className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+              <span className="hidden sm:inline">My Passes</span>
             </Link>
 
+            {/* Host Login - Tablet/Desktop only */}
             <Link
               href="/organizer"
-              className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
+              className="hidden md:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 shrink-0"
             >
               <LayoutDashboard className="h-3.5 w-3.5 text-slate-500" />
-              <span>Host Login</span>
+              <span>Host Portal</span>
             </Link>
 
+            {/* Host CTA */}
             <Link
               href="/organizer/events/new"
               className="flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-xs transition hover:bg-slate-800 shrink-0"
             >
-              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Host Event</span>
-              <span className="xs:hidden">Host</span>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Host</span>
             </Link>
           </div>
 
@@ -345,13 +347,14 @@ export default function HomePage() {
 
         <div className="mx-auto max-w-3xl text-center">
           
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50/70 px-3 py-1 text-[11px] sm:text-xs font-semibold text-rose-700 max-w-full">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50/70 px-3 py-1 text-[11px] sm:text-xs font-semibold text-rose-700">
             <Ticket className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-600 shrink-0" />
-            <span className="truncate">The Modern Ticketing Platform for Independent Gigs & Meetups</span>
+            <span className="hidden sm:inline">The Modern Ticketing Platform for Independent Gigs &amp; Screenings</span>
+            <span className="sm:hidden">0% Fee Indie Gigs &amp; Screenings</span>
           </div>
 
-          <h1 className="mt-4 sm:mt-6 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl sm:leading-[1.12]">
-            Find the gig. Grab your pass. <br />
+          <h1 className="mt-4 sm:mt-6 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl sm:leading-[1.12] text-balance">
+            Find the gig. Grab your pass. <br className="hidden sm:inline" />
             <span className="text-slate-500">
               {selectedCity === "All Cities" || selectedCity === "all"
                 ? "Never miss a scene across India."
@@ -359,7 +362,7 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <p className="mx-auto mt-3 sm:mt-4 max-w-xl text-xs sm:text-base leading-relaxed text-slate-600">
+          <p className="mx-auto mt-3 sm:mt-4 max-w-xl text-xs sm:text-base leading-relaxed text-slate-600 text-balance">
             Direct access to movie screenings, acoustic sessions, workshops, theater, and community cultural gatherings. Pay securely with instant UPI checkout and receive an encrypted digital pass on your phone.
           </p>
 
@@ -375,14 +378,13 @@ export default function HomePage() {
                   : `Explore Gigs in ${selectedCity}`}
               </span>
             </Link>
-            <button
-              type="button"
-              onClick={() => setIsCityModalOpen(true)}
+            <Link
+              href="/organizer/events/new"
               className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-5 py-2.5 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
             >
-              <MapPin className="h-3.5 w-3.5 text-rose-600" />
-              <span>Change City ({selectedCity})</span>
-            </button>
+              <Plus className="h-3.5 w-3.5 text-rose-600" />
+              <span>Host an Event (0% Fee)</span>
+            </Link>
           </div>
 
         </div>

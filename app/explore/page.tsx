@@ -255,22 +255,27 @@ function ExploreDirectoryContent() {
               <button
                 type="button"
                 onClick={() => setIsCityModalOpen(true)}
-                className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-800 transition hover:bg-slate-100 hover:border-slate-300 shadow-2xs shrink-0"
+                className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-800 transition hover:bg-slate-100 hover:border-slate-300 shadow-2xs shrink-0 cursor-pointer"
               >
                 <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-600 shrink-0" />
-                <span className="max-w-[85px] xs:max-w-[130px] sm:max-w-none truncate">{selectedCity}</span>
+                <span className="max-w-[70px] sm:max-w-none truncate">{selectedCity}</span>
                 <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
               </button>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <Link
+                href="/passes"
+                className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+              >
+                <span>My Passes</span>
+              </Link>
+              <Link
                 href="/organizer/events/new"
                 className="flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white shadow-xs transition hover:bg-slate-800 shrink-0"
               >
-                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Host Event</span>
-                <span className="xs:hidden">Host</span>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Host</span>
               </Link>
             </div>
 
