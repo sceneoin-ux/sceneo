@@ -16,7 +16,9 @@ import {
   Lock,
   Film,
   Loader2,
-  Compass
+  Compass,
+  Images,
+  X
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
@@ -56,6 +58,7 @@ interface LoadedEvent {
   address: string;
   city: string;
   bannerUrl: string;
+  galleryUrls?: string[];
   organizerName: string;
   organizerVerified: boolean;
   description: string;
@@ -75,6 +78,7 @@ function EventBookingContent() {
 
   const [eventData, setEventData] = useState<LoadedEvent | null>(null);
   const [flyerSrc, setFlyerSrc] = useState<string>("");
+  const [selectedLightboxPhoto, setSelectedLightboxPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -446,6 +450,56 @@ function EventBookingContent() {
                 </div>
               </div>
 
+              {/* Venue & Vibes Gallery Thumbnails Strip */}
+              {eventData.galleryUrls && eventData.galleryUrls.length > 0 && (
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2 px-0.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Images className="h-3.5 w-3.5 text-rose-600" />
+                      <span>Venue &amp; Vibes Gallery ({eventData.galleryUrls.length} Photos)</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium">Click photo to view &amp; enlarge</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+                    {/* Primary Poster Thumbnail */}
+                    <button
+                      type="button"
+                      onClick={() => setFlyerSrc(eventData.bannerUrl)}
+                      className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition cursor-pointer ${
+                        (flyerSrc === eventData.bannerUrl || !flyerSrc)
+                          ? "border-rose-600 ring-2 ring-rose-500/20 shadow-xs"
+                          : "border-slate-200 opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={eventData.bannerUrl} alt="Cover flyer" className="h-full w-full object-cover" />
+                      <span className="absolute bottom-0.5 left-1 text-[8px] font-bold text-white bg-black/60 px-1 rounded-sm">Cover</span>
+                    </button>
+
+                    {/* Gallery Photos */}
+                    {eventData.galleryUrls.map((photoUrl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setFlyerSrc(photoUrl);
+                          setSelectedLightboxPhoto(photoUrl);
+                        }}
+                        className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition cursor-pointer ${
+                          flyerSrc === photoUrl
+                            ? "border-rose-600 ring-2 ring-rose-500/20 shadow-xs"
+                            : "border-slate-200 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={photoUrl} alt={`Venue photo ${idx + 1}`} className="h-full w-full object-cover" />
+                        <span className="absolute bottom-0.5 right-1 text-[8px] font-bold text-white bg-black/60 px-1 rounded-sm">#{idx + 1}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Title & Host Credibility */}
               <div>
                 <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
@@ -729,6 +783,34 @@ function EventBookingContent() {
           </div>
         )}
       </main>
+
+      {/* Lightbox Modal for Enlarged Photo Views */}
+      {selectedLightboxPhoto && (
+        <div 
+          onClick={() => setSelectedLightboxPhoto(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-150 cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={selectedLightboxPhoto} 
+              alt="Enlarged venue view" 
+              className="max-h-[80vh] w-auto max-w-full object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedLightboxPhoto(null)}
+              className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-rose-600 transition shadow-md"
+              title="Close photo"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,8 @@ import {
   Layers,
   Upload,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Images
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { INDIAN_CITIES } from "@/config/cities";
@@ -65,6 +66,57 @@ export default function CreateEventPage() {
     } finally {
       setIsUploadingFlyer(false);
     }
+  };
+
+  // Additional Venue & Vibes Photo Gallery
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [galleryInputUrl, setGalleryInputUrl] = useState("");
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (galleryUrls.length >= 5) {
+      alert("Maximum 5 venue & vibes photos allowed.");
+      return;
+    }
+
+    setIsUploadingGallery(true);
+    try {
+      const remainingSlots = 5 - galleryUrls.length;
+      const filesToUpload = Array.from(files).slice(0, remainingSlots);
+      const newUrls: string[] = [];
+
+      for (const file of filesToUpload) {
+        const res = await uploadFlyerToCloudinary(file);
+        if (res.success && res.secureUrl) {
+          newUrls.push(res.secureUrl);
+        }
+      }
+
+      if (newUrls.length > 0) {
+        setGalleryUrls((prev) => [...prev, ...newUrls]);
+      }
+    } catch (err) {
+      alert("Error uploading gallery image: " + (err as Error).message);
+    } finally {
+      setIsUploadingGallery(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeGalleryPhoto = (index: number) => {
+    setGalleryUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const addGalleryUrl = () => {
+    if (!galleryInputUrl.trim()) return;
+    if (galleryUrls.length >= 5) {
+      alert("Maximum 5 gallery photos allowed.");
+      return;
+    }
+    setGalleryUrls((prev) => [...prev, galleryInputUrl.trim()]);
+    setGalleryInputUrl("");
   };
   const [ageRestriction, setAgeRestriction] = useState("21+");
   const [hasCoverCharge, setHasCoverCharge] = useState(false);
@@ -126,6 +178,7 @@ export default function CreateEventPage() {
           eventDate,
           gatesOpen,
           posterUrl: posterUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+          galleryUrls,
           ageRestriction,
           coverChargeNote: hasCoverCharge ? coverChargeNote : "No mandatory cover charge.",
           outsideFoodAllowed: false,
@@ -517,6 +570,104 @@ export default function CreateEventPage() {
                   onChange={(e) => setPosterUrl(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-rose-500 focus:outline-none"
                 />
+              </div>
+
+              {/* Multi-Photo Gallery (Venue, Vibes & Artists) */}
+              <div className="mt-5 pt-5 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Images className="h-4 w-4 text-rose-600" />
+                      <span>Venue &amp; Vibes Photo Gallery (Up to 5 Photos)</span>
+                    </label>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      Showcase stage setup, cafe/pub seating, ambient lighting, or artist lineup so attendees feel the vibe.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-600">
+                    {galleryUrls.length}/5 Photos
+                  </span>
+                </div>
+
+                {/* Upload or Add URL */}
+                {galleryUrls.length < 5 && (
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2.5">
+                    <div className="relative flex-1 flex items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-3 px-4 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        multiple
+                        onChange={handleGalleryUpload}
+                        disabled={isUploadingGallery}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        {isUploadingGallery ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
+                            <span>Uploading to Cloudinary...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 text-rose-600" />
+                            <span>Upload Venue Photo</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 sm:max-w-xs">
+                      <input
+                        type="url"
+                        placeholder="Or paste photo URL"
+                        value={galleryInputUrl}
+                        onChange={(e) => setGalleryInputUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addGalleryUrl();
+                          }
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-rose-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={addGalleryUrl}
+                        disabled={!galleryInputUrl.trim()}
+                        className="shrink-0 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-40"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Photo Previews Grid */}
+                {galleryUrls.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {galleryUrls.map((url, idx) => (
+                      <div key={idx} className="group relative aspect-4/3 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-2xs">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Venue vibe photo ${idx + 1}`}
+                          className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeGalleryPhoto(idx)}
+                          className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900/80 text-white backdrop-blur-xs transition hover:bg-rose-600 shadow-xs"
+                          title="Remove photo"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-xs">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

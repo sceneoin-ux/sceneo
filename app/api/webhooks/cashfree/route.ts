@@ -4,6 +4,29 @@ import crypto from "crypto";
 import { fulfillOrder } from "@/lib/fulfillment";
 import { logSecurityEvent } from "@/lib/logger";
 
+interface CashfreeWebhookPayload {
+  type?: string;
+  event?: string;
+  orderId?: string;
+  data?: {
+    order?: {
+      order_id?: string;
+      order_status?: string;
+    };
+    order_id?: string;
+    order_status?: string;
+    payment?: {
+      payment_status?: string;
+      cf_payment_id?: string | number;
+      payment_id?: string | number;
+    };
+  };
+}
+
+export async function GET() {
+  return NextResponse.json({ status: "ok", service: "SceneO Cashfree Webhook Active" }, { status: 200 });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
@@ -11,6 +34,24 @@ export async function POST(req: NextRequest) {
     const timestamp = req.headers.get("x-webhook-timestamp");
     const secretKey = process.env.CASHFREE_SECRET_KEY;
     const environment = process.env.CASHFREE_ENVIRONMENT || "TEST";
+
+    // Allow Cashfree dashboard test pings / verification
+    if (!rawBody || rawBody.trim() === "" || rawBody.trim() === "{}") {
+      return NextResponse.json({ status: "ok", message: "Cashfree test ping acknowledged" }, { status: 200 });
+    }
+
+    let payload: CashfreeWebhookPayload = {};
+    try {
+      payload = JSON.parse(rawBody) as CashfreeWebhookPayload;
+    } catch {
+      return NextResponse.json({ status: "ok", message: "Ping received" }, { status: 200 });
+    }
+
+    // Handle Cashfree dashboard test ping event
+    const eventType = payload.type || payload.event;
+    if (eventType === "TEST" || eventType === "TEST_WEBHOOK") {
+      return NextResponse.json({ status: "ok", message: "Cashfree webhook test succeeded" }, { status: 200 });
+    }
 
     // 1. Cryptographic HMAC-SHA256 Signature Verification in Production
     if (environment === "PROD") {
@@ -37,16 +78,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payload = JSON.parse(rawBody);
-
-    // Cashfree Webhook standard structure (v2023-08-01)
-    const eventType = payload.type || payload.event;
+    // Cashfree Webhook standard structure (v2023-08-01 / v2026-01-01)
     const data = payload.data?.order || payload.data || {};
     const orderId = data.order_id || payload.orderId;
     const paymentStatus = payload.data?.payment?.payment_status || data.order_status;
 
     if (!orderId) {
-      return NextResponse.json({ error: "No order_id in webhook payload" }, { status: 400 });
+      // Return 200 for dashboard test validations
+      return NextResponse.json({ status: "ok", message: "Validation ping acknowledged" }, { status: 200 });
     }
 
     if (paymentStatus === "SUCCESS" || eventType === "PAYMENT_SUCCESS_WEBHOOK") {

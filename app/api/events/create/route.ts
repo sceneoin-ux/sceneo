@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       eventDate,
       gatesOpen = "7:00 PM",
       posterUrl,
+      galleryUrls = [],
       ageRestriction = "21+",
       coverChargeNote,
       outsideFoodAllowed = false,
@@ -77,33 +78,44 @@ export async function POST(req: NextRequest) {
     const slug = `${baseSlug}-${Math.floor(Math.random() * 900 + 100)}`;
 
     // 3. Insert Event into Supabase
-    const { data: event, error: eventErr } = await supabase
+    const insertPayload: Record<string, unknown> = {
+      organizer_id: organizerId,
+      slug: slug,
+      title: title,
+      description: description || "Join us for this curated live experience.",
+      category: category || "music",
+      venue_type: venueType || "auditorium",
+      venue_name: venueName,
+      audi_screen_number: audiScreenNumber || null,
+      city: city,
+      address: address || venueName,
+      event_date: new Date(eventDate).toISOString(),
+      gates_open: gatesOpen,
+      poster_url: posterUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+      gallery_urls: Array.isArray(galleryUrls) ? galleryUrls.filter(Boolean) : [],
+      age_restriction: ageRestriction,
+      cover_charge_note: coverChargeNote || "Entry pass only.",
+      outside_food_allowed: outsideFoodAllowed,
+      seat_allocation_mode: venueType === "theater" ? "assigned_seating" : "general_admission",
+      is_published: false // Gated pending mandatory Host KYC (Aadhaar & PAN) approval
+    };
+
+    let { data: event, error: eventErr } = await supabase
       .from("events")
-      .insert({
-        organizer_id: organizerId,
-        slug: slug,
-        title: title,
-        description: description || "Join us for this curated live experience.",
-        category: category || "music",
-        venue_type: venueType || "auditorium",
-        venue_name: venueName,
-        audi_screen_number: audiScreenNumber || null,
-        city: city,
-        address: address || venueName,
-        event_date: new Date(eventDate).toISOString(),
-        gates_open: gatesOpen,
-        poster_url: posterUrl || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
-        age_restriction: ageRestriction,
-        cover_charge_note: coverChargeNote || "Entry pass only.",
-        outside_food_allowed: outsideFoodAllowed,
-        seat_allocation_mode: venueType === "theater" ? "assigned_seating" : "general_admission",
-        is_published: false // Gated pending mandatory Host KYC (Aadhaar & PAN) approval
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
+    if (eventErr && (eventErr.message?.includes("gallery_urls") || eventErr.code === "42703")) {
+      delete insertPayload.gallery_urls;
+      const retry = await supabase.from("events").insert(insertPayload).select().single();
+      event = retry.data;
+      eventErr = retry.error;
+    }
+
     if (eventErr || !event) {
-      return NextResponse.json({ error: "Failed to publish event." }, { status: 500 });
+      console.error("[EVENT CREATE ERROR]:", eventErr);
+      return NextResponse.json({ error: eventErr?.message || "Failed to publish event." }, { status: 500 });
     }
 
     // 4. Insert Ticket Tiers

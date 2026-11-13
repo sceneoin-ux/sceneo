@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
           address: event.address || event.venue_name,
           city: event.city || "India",
           bannerUrl: event.poster_url || defaultBanner,
+          galleryUrls: Array.isArray(event.gallery_urls) ? event.gallery_urls : [],
           organizerName: event.organizers?.name || "Independent Host",
           organizerVerified: event.organizers?.is_verified ?? true,
           description: event.description || "Join us for this curated live experience.",
