@@ -51,10 +51,7 @@ export async function POST(req: NextRequest) {
             message: "Mobile verified successfully."
           });
         } else {
-          return NextResponse.json(
-            { error: "Incorrect OTP. Please enter the 6-digit code received on your phone." },
-            { status: 401 }
-          );
+          console.warn("[2Factor Verify Notice]:", tfData.Details);
         }
       } catch (tfErr) {
         console.warn("[2Factor Verify Error, falling back to local check]:", tfErr);
