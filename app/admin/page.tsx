@@ -484,7 +484,114 @@ export default function PlatformOwnerDashboard() {
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xs">
+            {/* MOBILE VIEW: Cards Feed (Zero Sideways Scroll) */}
+            <div className="space-y-3 md:hidden">
+              {events.map((ev) => {
+                const remaining = Math.max(0, ev.totalCapacity - ev.ticketsSold);
+                const pct = Math.round((ev.ticketsSold / ev.totalCapacity) * 100);
+
+                return (
+                  <div key={ev.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+                    {/* Header: Title + Category */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-slate-900 text-sm leading-snug">{ev.title}</h4>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-1 truncate">
+                          <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{ev.venue_name} ({ev.city})</span>
+                        </div>
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-700 shrink-0">
+                        {ev.venue_type === "theater" ? <Film className="h-2.5 w-2.5 text-rose-600" /> : <Music className="h-2.5 w-2.5 text-rose-600" />}
+                        <span>{ev.category.replace("_", " ")}</span>
+                      </span>
+                    </div>
+
+                    {/* Status & Host Info */}
+                    <div className="flex items-center justify-between text-xs rounded-xl bg-slate-50 p-2.5">
+                      <div>
+                        <div className="font-bold text-slate-900">{ev.organizerName}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {ev.organizerPhone ? `+91 ${ev.organizerPhone.replace(/\D/g, "").slice(-10)}` : "Verified Host"}
+                        </div>
+                      </div>
+
+                      <div>
+                        {ev.is_published ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <CheckCircle2 className="h-3 w-3" /> Approved
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                            ⏳ Pending KYC
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Financial & Capacity 3-Pill Grid */}
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-xl border border-slate-100 bg-white p-2">
+                        <div className="text-[10px] text-slate-400 font-semibold uppercase">Tickets</div>
+                        <div className="font-black text-slate-900 mt-0.5">{ev.ticketsSold}/{ev.totalCapacity}</div>
+                        <div className="text-[9px] text-slate-500">{pct}% sold</div>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-100 bg-white p-2">
+                        <div className="text-[10px] text-slate-400 font-semibold uppercase">Gross GMV</div>
+                        <div className="font-black text-emerald-700 mt-0.5">₹{ev.grossEarnings.toLocaleString("en-IN")}</div>
+                        <div className="text-[9px] text-slate-500">to host</div>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-100 bg-white p-2">
+                        <div className="text-[10px] text-slate-400 font-semibold uppercase">SceneO (5.5%)</div>
+                        <div className="font-black text-rose-600 mt-0.5">+₹{ev.platformFees.toLocaleString("en-IN")}</div>
+                        <div className="text-[9px] text-rose-500">platform</div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                      {!ev.is_published ? (
+                        <button
+                          onClick={() => handleApproveEvent(ev.id, "approve")}
+                          className="flex-1 rounded-xl bg-emerald-600 py-2 text-center text-xs font-bold text-white shadow-xs hover:bg-emerald-500 transition"
+                        >
+                          Approve & Go Live
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleApproveEvent(ev.id, "reject")}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:text-rose-600"
+                        >
+                          Pause
+                        </button>
+                      )}
+
+                      <Link
+                        href={`/organizer/${ev.slug || ev.id}`}
+                        target="_blank"
+                        className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        Host Hub
+                      </Link>
+
+                      <Link
+                        href={`/e/${ev.slug || ev.id}`}
+                        target="_blank"
+                        className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        Public Page
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* DESKTOP VIEW: Multi-Column Table */}
+            <div className="hidden md:block overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xs">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-600">
                   <tr>
@@ -689,7 +796,77 @@ export default function PlatformOwnerDashboard() {
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xs">
+            {/* MOBILE VIEW: Cards Feed (Zero Sideways Scroll) */}
+            <div className="space-y-3 md:hidden">
+              {recentOrders.map((ord) => (
+                <div key={ord.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+                  {/* Header: Order ID + Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-xs font-bold text-slate-800">{ord.order_number}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{ord.created_at}</div>
+                    </div>
+
+                    <div>
+                      {ord.payment_status === "PAID" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>PAID</span>
+                        </span>
+                      ) : ord.payment_status === "DROPPED_AT_PAYMENT" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700">
+                          <span>DROPPED</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                          <span>{ord.payment_status || "PENDING"}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Buyer & Event Info */}
+                  <div className="rounded-xl bg-slate-50 p-2.5 text-xs space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900">{ord.customer_name}</span>
+                      <a
+                        href={`https://wa.me/91${ord.customer_phone.replace(/\D/g, "").slice(-10)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-700 font-mono text-[11px] hover:underline flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3 text-emerald-600" />
+                        <span>{ord.customer_phone}</span>
+                      </a>
+                    </div>
+                    <div className="text-slate-600 font-medium truncate">
+                      {ord.event_title} <span className="text-slate-400 font-normal">• {ord.quantity} pass</span>
+                    </div>
+                  </div>
+
+                  {/* Pricing Breakdown 3-Pill Grid */}
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-xl border border-slate-100 bg-white p-2">
+                      <div className="text-[10px] text-slate-400 font-semibold uppercase">Face Value</div>
+                      <div className="font-bold text-slate-800 mt-0.5">₹{ord.ticket_price}</div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 bg-white p-2">
+                      <div className="text-[10px] text-slate-400 font-semibold uppercase">Fee</div>
+                      <div className="font-bold text-rose-600 mt-0.5">+₹{ord.convenience_fee}</div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 bg-white p-2">
+                      <div className="text-[10px] text-slate-400 font-semibold uppercase">Total</div>
+                      <div className="font-black text-slate-900 mt-0.5">₹{ord.total_paid}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VIEW: Multi-Column Table */}
+            <div className="hidden md:block overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xs">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-600">
                   <tr>

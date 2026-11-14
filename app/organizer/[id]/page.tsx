@@ -386,8 +386,98 @@ function DynamicOrganizerDashboard() {
             </div>
           </div>
 
-          {/* TABLE OF ORDERS */}
-          <div className="overflow-x-auto">
+          {/* MOBILE VIEW: High-Density Card Feed (Zero Sideways Scroll) */}
+          <div className="divide-y divide-slate-100 md:hidden">
+            {filteredOrders.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <div className="font-semibold text-slate-600">No Orders in Database</div>
+                <div className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                  Real-time attendee pass bookings and UPI checkout records will be synced directly from your database here.
+                </div>
+              </div>
+            ) : (
+              filteredOrders.map((order) => (
+                <div key={order.id} className="p-4 space-y-3">
+                  {/* Top: Name & Payment Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm leading-tight">{order.buyerName}</h4>
+                      <a
+                        href={`https://wa.me/91${order.phone.replace(/\D/g, "").slice(-10)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-700 font-mono text-xs flex items-center gap-1 mt-1 hover:underline"
+                      >
+                        <Phone className="h-3 w-3 text-emerald-600 shrink-0" />
+                        <span>{order.phone}</span>
+                      </a>
+                    </div>
+
+                    <div>
+                      {order.status === "PAID" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="h-3 w-3" /> Paid & Issued
+                        </span>
+                      ) : (
+                        <div className="text-right">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">
+                            <AlertTriangle className="h-3 w-3" /> Dropped
+                          </span>
+                          {order.failureReason && (
+                            <div className="text-[9px] text-rose-600 mt-0.5 font-medium">{order.failureReason}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3-Pill Details Grid */}
+                  <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-2.5 text-center text-xs">
+                    <div>
+                      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tier</div>
+                      <div className="font-bold text-slate-900 truncate mt-0.5">{order.tierName}</div>
+                      {order.assignedSeat && <div className="text-[10px] text-slate-500 font-mono">{order.assignedSeat}</div>}
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Amount</div>
+                      <div className="font-black text-slate-900 mt-0.5">₹{Number(order.amount).toLocaleString("en-IN")}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Door Entry</div>
+                      <div className="mt-0.5">
+                        {order.isCheckedIn ? (
+                          <span className="text-emerald-600 font-bold text-[10px]">Checked In</span>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">Pending Gate</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  {order.status !== "PAID" ? (
+                    <button
+                      onClick={() => sendWhatsAppRecovery(order)}
+                      className="flex items-center justify-center gap-1.5 w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-500 transition cursor-pointer"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>1-Tap WhatsApp Recovery Link</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
+                      <span>Pass Token:</span>
+                      <span className="font-bold text-slate-600">{order.passToken || "Active"}</span>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* DESKTOP VIEW: Full Multi-Column Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50/75 text-slate-500">
                 <tr>
