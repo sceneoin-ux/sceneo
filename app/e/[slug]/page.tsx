@@ -18,7 +18,10 @@ import {
   Loader2,
   Compass,
   Images,
-  X
+  X,
+  Share2,
+  Download,
+  Smartphone
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
@@ -234,8 +237,15 @@ function EventBookingContent() {
             if (paid) {
               setCheckoutComplete(true);
             } else {
+              // Record drop-off in Supabase for organizer visibility
+              fetch("/api/checkout/record-drop", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: orderData.orderId, reason: "CHECKOUT_MODAL_CLOSED_UNPAID" })
+              }).catch(() => {});
+
               alert(
-                "Payment is processing or was cancelled. If debited, your pass will appear under '🎟️ My Passes' (sceneo.in/passes)."
+                "Payment was not completed. If debited, your pass will appear under '🎟️ My Passes' (sceneo.in/passes)."
               );
             }
           });
@@ -248,6 +258,117 @@ function EventBookingContent() {
     } catch (err) {
       console.error("Checkout error:", err);
       setIsProcessing(false);
+    }
+  };
+
+  const handleSharePass = async () => {
+    if (!eventData) return;
+    const cleanPhone = (attendeePhone || "").replace(/\D/g, "").slice(-10);
+    const passUrl = `https://sceneo.in/passes?phone=${cleanPhone}`;
+    const shareData = {
+      title: `🎟️ Entry Pass: ${eventData.title}`,
+      text: `Confirmed entry pass for ${eventData.title} (${totalTickets} Ticket(s)) at ${eventData.venueName}. Ref: ${confirmedOrder?.orderNumber || ""}`,
+      url: passUrl
+    };
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (e: unknown) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+
+    const waText = encodeURIComponent(
+      `🎟️ *SceneO Entry Pass Confirmed!*\n\n` +
+      `*Event:* ${eventData.title}\n` +
+      `*Guest:* ${attendeeName || "Attendee"}\n` +
+      `*Passes:* ${totalTickets} Ticket(s)\n` +
+      `*Venue:* ${eventData.venueName}\n` +
+      `*Date:* ${eventData.date}\n\n` +
+      `Show live pass at the gate: ${passUrl}`
+    );
+    window.open(`https://wa.me/?text=${waText}`, "_blank");
+  };
+
+  const handleSavePassImage = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 600;
+      canvas.height = 800;
+      const ctx = canvas.getContext("2d");
+      if (!ctx || !eventData) return;
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, 600, 800);
+
+      ctx.fillStyle = "#0F172A";
+      ctx.fillRect(0, 0, 600, 140);
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 32px sans-serif";
+      ctx.fillText("SceneO", 40, 70);
+
+      ctx.fillStyle = "#10B981";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("CONFIRMED LIVE ENTRY PASS", 40, 105);
+
+      ctx.fillStyle = "#0F172A";
+      ctx.font = "bold 26px sans-serif";
+      ctx.fillText(eventData.title.slice(0, 32), 40, 200);
+
+      ctx.fillStyle = "#64748B";
+      ctx.font = "16px sans-serif";
+      ctx.fillText(`📅 ${eventData.date} • ${eventData.time}`, 40, 250);
+      ctx.fillText(`📍 ${eventData.venueName}, ${eventData.city}`, 40, 280);
+
+      ctx.strokeStyle = "#E2E8F0";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(40, 330);
+      ctx.lineTo(560, 330);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#0F172A";
+      ctx.font = "bold 18px sans-serif";
+      ctx.fillText(`Guest: ${attendeeName || "Attendee"}`, 40, 380);
+      ctx.fillText(`Passes: ${totalTickets} Ticket(s)`, 40, 415);
+      if (confirmedOrder?.assignedSeat) {
+        ctx.fillText(`Seat / Door: ${confirmedOrder.assignedSeat}`, 40, 450);
+      }
+
+      ctx.fillStyle = "#F8FAFC";
+      ctx.fillRect(40, 490, 520, 80);
+      ctx.strokeStyle = "#CBD5E1";
+      ctx.strokeRect(40, 490, 520, 80);
+
+      ctx.fillStyle = "#64748B";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("BOOKING REF", 60, 520);
+      ctx.fillStyle = "#0F172A";
+      ctx.font = "bold 22px monospace";
+      ctx.fillText(confirmedOrder?.orderNumber || "SCENEO-CONFIRMED", 60, 550);
+
+      ctx.fillStyle = "#64748B";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("GATE PASS TOKEN", 40, 610);
+      ctx.fillStyle = "#F43F5E";
+      ctx.font = "bold 16px monospace";
+      ctx.fillText(confirmedOrder?.passToken || "SCENEO-ACTIVE-TOTP", 40, 635);
+
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("Present this digital pass at door scanner • sceneo.in", 40, 710);
+
+      const link = document.createElement("a");
+      link.download = `SceneO-Pass-${confirmedOrder?.orderNumber || "entry"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      console.warn("Save pass canvas error:", e);
     }
   };
 
@@ -387,30 +508,31 @@ function EventBookingContent() {
 
             {/* Quick Action Buttons */}
             <div className="mt-6 flex flex-col gap-2.5">
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                  `🎟️ *SceneO Entry Pass Confirmed!*\n\n` +
-                  `*Event:* ${eventData.title}\n` +
-                  `*Guest:* ${attendeeName || "Attendee"}\n` +
-                  `*Passes:* ${totalTickets} Ticket(s)\n` +
-                  `*Venue:* ${eventData.venueName}\n` +
-                  `*Date:* ${eventData.date}\n\n` +
-                  `Show this dynamic live pass at the gate: https://sceneo.in/passes?phone=${(attendeePhone || "").replace(/\D/g, "").slice(-10)}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-xs hover:bg-emerald-500 transition"
+              <button
+                type="button"
+                onClick={handleSharePass}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-xs hover:bg-emerald-500 transition cursor-pointer"
               >
-                <span>💬 Send Pass to My WhatsApp</span>
-              </a>
+                <Share2 className="h-4 w-4" />
+                <span>Share / WhatsApp Pass</span>
+              </button>
 
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+                onClick={handleSavePassImage}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
               >
-                <span>🖨️ Save / Print Pass</span>
+                <Download className="h-4 w-4 text-rose-600" />
+                <span>Save Pass to Device (Offline PNG)</span>
               </button>
+
+              <Link
+                href="/passes"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-white"
+              >
+                <Smartphone className="h-4 w-4 text-purple-600" />
+                <span>View All My Passes</span>
+              </Link>
 
               <Link
                 href="/"

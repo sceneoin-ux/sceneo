@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     const orgPhone = (event.organizers?.phone || "").replace(/\D/g, "");
     const isOwner = Boolean(cleanRequestPhone && orgPhone && cleanRequestPhone.slice(-10) === orgPhone.slice(-10));
 
-    // 3. Fetch Orders strictly from Supabase database
+    // 3. Fetch Orders strictly from Supabase database (Completed, Pending, and Dropped-off)
     let finalOrders: Array<{
       id: string;
       orderNumber: string;
@@ -83,31 +83,35 @@ export async function GET(req: NextRequest) {
       checkedInAt: string | null;
     }> = [];
 
-    if (isOwner) {
-      const { data: dbOrdersData } = await supabase
-        .from("orders")
-        .select("*, passes(*), ticket_tiers(tier_name, price)")
-        .eq("event_id", event.id)
-        .order("created_at", { ascending: false });
+    const { data: dbOrdersData } = await supabase
+      .from("orders")
+      .select("*, passes(*), ticket_tiers(tier_name, price)")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
 
-      const dbOrders = (dbOrdersData || []) as DbOrderRow[];
+    const dbOrders = (dbOrdersData || []) as DbOrderRow[];
 
-      finalOrders = dbOrders.map((o) => ({
+    finalOrders = dbOrders.map((o) => {
+      let displayStatus: "PAID" | "FAILED" | "PENDING" = "PENDING";
+      if (o.payment_status === "PAID") displayStatus = "PAID";
+      else if (o.payment_status === "DROPPED_AT_PAYMENT" || o.payment_status === "FAILED") displayStatus = "FAILED";
+
+      return {
         id: o.id,
         orderNumber: o.order_number,
-        buyerName: o.customer_name,
-        phone: maskPhone(o.customer_phone),
+        buyerName: o.customer_name || "Guest Attendee",
+        phone: isOwner ? o.customer_phone : maskPhone(o.customer_phone),
         tierName: o.ticket_tiers?.tier_name || "General Pass",
-        amount: o.ticket_price,
-        status: o.payment_status as "PAID" | "FAILED" | "PENDING",
-        failureReason: o.payment_status !== "PAID" ? "Payment timeout or abandoned" : undefined,
+        amount: o.ticket_price || 0,
+        status: displayStatus,
+        failureReason: o.payment_status === "DROPPED_AT_PAYMENT" ? "Abandoned at UPI / payment screen" : o.payment_status !== "PAID" ? "Payment pending / cancelled" : undefined,
         createdAt: new Date(o.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
         passToken: o.passes?.[0]?.pass_token || null,
         assignedSeat: o.passes?.[0]?.assigned_seat || null,
         isCheckedIn: o.passes?.[0]?.is_checked_in || false,
         checkedInAt: o.passes?.[0]?.checked_in_at || null
-      }));
-    }
+      };
+    });
 
     const tiers = (event.ticket_tiers || []) as DbTierRow[];
     const totalCapacity = tiers.reduce((sum, t) => sum + Number(t.total_capacity || 0), 0);

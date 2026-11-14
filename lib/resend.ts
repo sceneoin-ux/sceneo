@@ -91,7 +91,7 @@ export async function sendTicketEmail(payload: TicketEmailPayload) {
   `;
 
   try {
-    const fromAddress = process.env.RESEND_FROM_EMAIL || "SceneO Tickets <onboarding@resend.dev>";
+    const fromAddress = process.env.RESEND_FROM_EMAIL || "SceneO Tickets <tickets@sceneo.in>";
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

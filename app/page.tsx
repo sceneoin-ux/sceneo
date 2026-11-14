@@ -23,7 +23,8 @@ import {
   ChevronDown,
   Loader2,
   Mail,
-  Phone
+  Phone,
+  Check
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -132,6 +133,7 @@ function EventCardItem({ evt }: { evt: LiveEvent }) {
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("sceneo_user_city") || "All Cities";
@@ -419,15 +421,62 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Category Filter Tabs with Horizontal Swipe on Mobile */}
-        <div className="mb-6 flex w-full overflow-x-auto no-scrollbar gap-1.5 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* ── Category Filter: Mobile Segmented Dropdown (Zero Horizontal Scroll) + Desktop Pill Bar ── */}
+        {/* Mobile View: Clean Category Selector Dropdown */}
+        <div className="sm:hidden mb-5">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 font-medium">Category:</span>
+                <span className="text-slate-900 font-extrabold">
+                  {CATEGORY_TABS.find((t) => t.id === selectedCategory)?.label || "All Experiences"}
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isCategoryDropdownOpen ? "rotate-180 text-slate-900" : ""}`} />
+            </button>
+
+            {isCategoryDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 z-30 mt-2 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-white p-2.5 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                {CATEGORY_TABS.map((tab) => {
+                  const isActive = selectedCategory === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(tab.id);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition text-left cursor-pointer ${
+                        isActive
+                          ? "bg-slate-900 text-white font-bold"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      {isActive && <Check className="h-3.5 w-3.5 text-rose-400 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop View: Clean Wrapping Pill Bar */}
+        <div className="hidden sm:flex mb-6 flex-wrap gap-1.5">
           {CATEGORY_TABS.map((tab) => {
             const isActive = selectedCategory === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setSelectedCategory(tab.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                   isActive
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:text-slate-900"

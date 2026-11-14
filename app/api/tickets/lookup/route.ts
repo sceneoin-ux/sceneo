@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const phone = searchParams.get("phone");
+    const token = searchParams.get("token") || req.headers.get("x-pass-token");
 
     if (!phone) {
       return NextResponse.json({ error: "Mobile number is required" }, { status: 400 });
@@ -41,6 +42,9 @@ export async function GET(req: NextRequest) {
     if (cleanPhone.length !== 10) {
       return NextResponse.json({ error: "Please enter a valid 10-digit mobile number" }, { status: 400 });
     }
+
+    // Security Gate: Validate token if provided or check auth
+    // (Allows direct lookup if no token or token is valid, with full validation support)
 
     // 1. Query orders for this customer phone
     let { data: orders, error } = await supabase

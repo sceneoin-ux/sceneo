@@ -687,10 +687,20 @@ export default function PlatformOwnerDashboard() {
                       </td>
 
                       <td className="py-4 px-6">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>PAID</span>
-                        </span>
+                        {ord.payment_status === "PAID" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <CheckCircle2 className="h-3 w-3" />
+                            <span>PAID</span>
+                          </span>
+                        ) : ord.payment_status === "DROPPED_AT_PAYMENT" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700">
+                            <span>DROPPED</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                            <span>{ord.payment_status || "PENDING"}</span>
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

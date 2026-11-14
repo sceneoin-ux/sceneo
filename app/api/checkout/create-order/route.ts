@@ -97,35 +97,40 @@ export async function POST(req: NextRequest) {
 
     let orderId = syntheticOrderId;
 
-    // 4. Insert Order into Supabase if available
+    // 4. Insert Order into Supabase to track full payment lifecycle (PENDING -> PAID or DROPPED)
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tierId);
-      if (isUUID) {
-        const { data: dbOrder } = await supabase
-          .from("orders")
-          .insert({
-            order_number: orderNumber,
-            cashfree_order_id: cfOrderId,
-            event_id: eventId,
-            tier_id: tierId,
-            customer_name: customerName,
-            customer_phone: cleanPhone,
-            customer_email: customerEmail || `${cleanPhone}@sceneo.temp`,
-            quantity: safeQuantity,
-            ticket_price: baseTicketPrice,
-            convenience_fee: convenienceFee,
-            total_paid: totalAmount,
-            payment_status: "PENDING"
-          })
-          .select()
-          .maybeSingle();
+      const isTierUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tierId);
+      const isEventUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
 
-        if (dbOrder && dbOrder.id) {
-          orderId = dbOrder.id;
-        }
+      const orderPayload: Record<string, unknown> = {
+        order_number: orderNumber,
+        cashfree_order_id: cfOrderId,
+        customer_name: customerName,
+        customer_phone: cleanPhone,
+        customer_email: customerEmail || `${cleanPhone}@sceneo.temp`,
+        quantity: safeQuantity,
+        ticket_price: baseTicketPrice,
+        convenience_fee: convenienceFee,
+        total_paid: totalAmount,
+        payment_status: "PENDING"
+      };
+
+      if (isEventUUID) orderPayload.event_id = eventId;
+      if (isTierUUID) orderPayload.tier_id = tierId;
+
+      const { data: dbOrder, error: insertErr } = await supabase
+        .from("orders")
+        .insert(orderPayload)
+        .select()
+        .maybeSingle();
+
+      if (insertErr) {
+        console.warn("[Create Order Supabase Insert Warning]:", insertErr.message);
+      } else if (dbOrder && dbOrder.id) {
+        orderId = dbOrder.id;
       }
-    } catch {
-      // Supabase insert caught
+    } catch (insertCatch) {
+      console.warn("[Create Order Supabase Exception]:", insertCatch);
     }
 
     // 5. Connect with Cashfree PG
