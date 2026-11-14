@@ -17,11 +17,14 @@ export async function POST(req: NextRequest) {
     const twoFactorKey = process.env.TWOFACTOR_API_KEY;
     const templateName = process.env.TWOFACTOR_OTP_TEMPLATE || "SCENEO_OTP";
 
-    // 1. Dispatch real telecom SMS via 2Factor.in (using approved DLT template to prevent voice fallback)
+    // 1. Generate cryptographically random 6-digit OTP in local security store
+    const otpCode = generateOtp(cleanPhone);
+
+    // 2. Dispatch real telecom SMS via 2Factor.in direct manual template route (bypasses AUTOGEN voice failover loop)
     if (twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
       try {
         const tfRes = await fetch(
-          `https://2factor.in/API/V1/${twoFactorKey}/SMS/${cleanPhone}/AUTOGEN/${templateName}`
+          `https://2factor.in/API/V1/${twoFactorKey}/SMS/91${cleanPhone}/${otpCode}/${templateName}`
         );
         const tfData = await tfRes.json();
 
@@ -41,9 +44,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Fallback in-memory generator if SMS gateway key is absent
-    const fallbackCode = generateOtp(cleanPhone);
-    console.log(`[SceneO Security OTP] Generated fallback OTP for +91 ${cleanPhone}: ${fallbackCode}`);
+    console.log(`[SceneO Security OTP] Generated local fallback OTP for +91 ${cleanPhone}: ${otpCode}`);
 
     return NextResponse.json({
       success: true,
