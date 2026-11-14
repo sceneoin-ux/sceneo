@@ -404,23 +404,69 @@ export default function PlatformOwnerDashboard() {
 
         </div>
 
-        {/* ────────────────── NAVIGATION TABS (Mobile Scrollable) ────────────────── */}
-        <div className="flex border-b border-slate-200 text-sm font-semibold text-slate-500 overflow-x-auto no-scrollbar whitespace-nowrap gap-1">
+        {/* ────────────────── NAVIGATION TABS (Zero Horizontal Scroll) ────────────────── */}
+        
+        {/* Mobile View: Equal-Width 3-Column Segmented Control */}
+        <div className="sm:hidden mb-4">
+          <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1.5 text-xs font-bold shadow-inner">
+            <button
+              type="button"
+              onClick={() => setActiveTab("overview")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition text-center cursor-pointer ${
+                activeTab === "overview"
+                  ? "bg-white text-slate-900 shadow-xs font-black border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span className="text-[11px] font-semibold text-slate-500">🎪 Programs</span>
+              <span className="text-sm font-extrabold text-slate-900">{events.length}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("organizers")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition text-center cursor-pointer ${
+                activeTab === "organizers"
+                  ? "bg-white text-slate-900 shadow-xs font-black border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span className="text-[11px] font-semibold text-slate-500">🏢 Hosts</span>
+              <span className="text-sm font-extrabold text-slate-900">{organizers.length}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("orders")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition text-center cursor-pointer ${
+                activeTab === "orders"
+                  ? "bg-white text-slate-900 shadow-xs font-black border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span className="text-[11px] font-semibold text-slate-500">💳 Sales</span>
+              <span className="text-sm font-extrabold text-slate-900">{recentOrders.length}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop View: Classic Detailed Tab Bar */}
+        <div className="hidden sm:flex border-b border-slate-200 text-sm font-semibold text-slate-500 gap-1 pb-1">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`pb-3 px-4 border-b-2 transition shrink-0 ${activeTab === "overview" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
+            className={`pb-3 px-4 border-b-2 transition ${activeTab === "overview" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
           >
             All Hosted Programs ({events.length})
           </button>
           <button
             onClick={() => setActiveTab("organizers")}
-            className={`pb-3 px-4 border-b-2 transition shrink-0 ${activeTab === "organizers" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
+            className={`pb-3 px-4 border-b-2 transition ${activeTab === "organizers" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
           >
             Registered Hosts ({organizers.length})
           </button>
           <button
             onClick={() => setActiveTab("orders")}
-            className={`pb-3 px-4 border-b-2 transition shrink-0 ${activeTab === "orders" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
+            className={`pb-3 px-4 border-b-2 transition ${activeTab === "orders" ? "border-rose-600 text-slate-900 font-bold" : "border-transparent hover:text-slate-900"}`}
           >
             Live Ticket Transactions ({recentOrders.length})
           </button>

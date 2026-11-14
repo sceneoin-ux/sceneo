@@ -307,32 +307,82 @@ function DynamicOrganizerDashboard() {
               </p>
             </div>
 
-            {/* TAB SELECTOR (Mobile Scrollable & Touch-Friendly) */}
-            <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold overflow-x-auto no-scrollbar whitespace-nowrap max-w-full">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`rounded-lg px-3.5 py-1.5 transition shrink-0 ${
-                  activeTab === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                All ({orders.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("completed")}
-                className={`rounded-lg px-3.5 py-1.5 transition shrink-0 ${
-                  activeTab === "completed" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Who Booked ({orders.filter((o) => o.status === "PAID").length})
-              </button>
-              <button
-                onClick={() => setActiveTab("failed")}
-                className={`rounded-lg px-3.5 py-1.5 transition shrink-0 ${
-                  activeTab === "failed" ? "bg-white text-rose-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Failed / Drop-offs ({orders.filter((o) => o.status !== "PAID").length})
-              </button>
+            {/* TAB SELECTOR: Mobile Equal-Width Segmented Control + Desktop Flex Bar */}
+            <div className="w-full sm:w-auto">
+              {/* Mobile View: 3 Equal Columns with Visual Status Indicators */}
+              <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 text-xs font-bold text-center sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("all")}
+                  className={`flex items-center justify-center gap-1 rounded-lg py-2 px-1 transition cursor-pointer ${
+                    activeTab === "all"
+                      ? "bg-white text-slate-900 shadow-xs font-black border border-slate-200/60"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span>All</span>
+                  <span className="rounded-full bg-slate-200 px-1.5 py-0.2 text-[10px] text-slate-700 font-extrabold">{orders.length}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("completed")}
+                  className={`flex items-center justify-center gap-1 rounded-lg py-2 px-1 transition cursor-pointer ${
+                    activeTab === "completed"
+                      ? "bg-white text-emerald-800 shadow-xs font-black border border-emerald-200/80"
+                      : "text-slate-600 hover:text-emerald-700"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  <span>Booked</span>
+                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] text-emerald-800 font-extrabold">{orders.filter((o) => o.status === "PAID").length}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("failed")}
+                  className={`flex items-center justify-center gap-1 rounded-lg py-2 px-1 transition cursor-pointer ${
+                    activeTab === "failed"
+                      ? "bg-white text-rose-800 shadow-xs font-black border border-rose-200/80"
+                      : "text-slate-600 hover:text-rose-700"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0"></span>
+                  <span>Dropped</span>
+                  <span className="rounded-full bg-rose-100 px-1.5 py-0.2 text-[10px] text-rose-800 font-extrabold">{orders.filter((o) => o.status !== "PAID").length}</span>
+                </button>
+              </div>
+
+              {/* Desktop View: Clean Detailed Flex Bar */}
+              <div className="hidden sm:flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("all")}
+                  className={`rounded-lg px-3.5 py-1.5 transition ${
+                    activeTab === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  All ({orders.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("completed")}
+                  className={`rounded-lg px-3.5 py-1.5 transition ${
+                    activeTab === "completed" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Who Booked ({orders.filter((o) => o.status === "PAID").length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("failed")}
+                  className={`rounded-lg px-3.5 py-1.5 transition ${
+                    activeTab === "failed" ? "bg-white text-rose-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Failed / Drop-offs ({orders.filter((o) => o.status !== "PAID").length})
+                </button>
+              </div>
             </div>
           </div>
 
