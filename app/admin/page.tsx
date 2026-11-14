@@ -343,61 +343,61 @@ export default function PlatformOwnerDashboard() {
           </div>
         </div>
 
-        {/* ────────────────── MASTER FINANCIAL KPIS ────────────────── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* ────────────────── MASTER FINANCIAL KPIS (Compact 2x2 Grid on Mobile) ────────────────── */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
           
           {/* 1. Platform Revenue (Your Earnings) */}
-          <div className="rounded-3xl border border-rose-200 bg-gradient-to-b from-rose-50/50 to-white p-6 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-rose-700">
-              <span>SceneO Net Revenue</span>
-              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] text-rose-800 font-bold">5.5% Fee</span>
+          <div className="rounded-2xl border border-rose-200 bg-gradient-to-b from-rose-50/50 to-white p-3.5 sm:p-5 shadow-xs">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-rose-700">
+              <span className="truncate">SceneO Revenue</span>
+              <span className="rounded-full bg-rose-100 px-1.5 py-0.2 text-[9px] text-rose-800 font-extrabold shrink-0">5.5%</span>
             </div>
-            <div className="mt-3 text-3xl font-black tracking-tight text-rose-600">
+            <div className="mt-1.5 sm:mt-3 text-lg sm:text-2xl font-black tracking-tight text-rose-600 truncate">
               ₹{metrics ? metrics.totalPlatformRevenue.toLocaleString("en-IN") : "0"}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="hidden sm:block mt-1 text-xs text-slate-500">
               Pure platform convenience fee profits retained.
             </p>
           </div>
 
           {/* 2. Platform GMV (Total Flow) */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-              <span>Total Platform GMV</span>
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="truncate">Platform GMV</span>
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
             </div>
-            <div className="mt-3 text-3xl font-black tracking-tight text-emerald-600">
+            <div className="mt-1.5 sm:mt-3 text-lg sm:text-2xl font-black tracking-tight text-emerald-600 truncate">
               ₹{metrics ? metrics.totalGMV.toLocaleString("en-IN") : "0"}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="hidden sm:block mt-1 text-xs text-slate-500">
               Total ticket money processed across all events.
             </p>
           </div>
 
           {/* 3. Total Tickets Sold */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-              <span>Total Tickets Booked</span>
-              <Ticket className="h-4 w-4 text-blue-600" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="truncate">Tickets Booked</span>
+              <Ticket className="h-3.5 w-3.5 text-blue-600 shrink-0" />
             </div>
-            <div className="mt-3 text-3xl font-black tracking-tight text-slate-900">
+            <div className="mt-1.5 sm:mt-3 text-lg sm:text-2xl font-black tracking-tight text-slate-900 truncate">
               {metrics ? metrics.totalTicketsSold : 0}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="hidden sm:block mt-1 text-xs text-slate-500">
               Across all screenings, workshops, and acoustic gigs.
             </p>
           </div>
 
           {/* 4. Active Programs & Organizers */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-              <span>Programs & Hosts</span>
-              <Building2 className="h-4 w-4 text-purple-600" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="truncate">Programs & Hosts</span>
+              <Building2 className="h-3.5 w-3.5 text-purple-600 shrink-0" />
             </div>
-            <div className="mt-3 text-3xl font-black tracking-tight text-slate-900">
-              {events.length} <span className="text-sm font-normal text-slate-500">events / {organizers.length} hosts</span>
+            <div className="mt-1.5 sm:mt-3 text-lg sm:text-2xl font-black tracking-tight text-slate-900 truncate">
+              {events.length} <span className="text-xs font-normal text-slate-500">ev / {organizers.length} h</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="hidden sm:block mt-1 text-xs text-slate-500">
               Zero-base-cost independent ecosystem.
             </p>
           </div>
@@ -487,7 +487,6 @@ export default function PlatformOwnerDashboard() {
             {/* MOBILE VIEW: Cards Feed (Zero Sideways Scroll) */}
             <div className="space-y-3 md:hidden">
               {events.map((ev) => {
-                const remaining = Math.max(0, ev.totalCapacity - ev.ticketsSold);
                 const pct = Math.round((ev.ticketsSold / ev.totalCapacity) * 100);
 
                 return (

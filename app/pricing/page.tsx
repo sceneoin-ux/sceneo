@@ -139,7 +139,69 @@ export default function PricingPage() {
             SceneO saves organizers and attendees up to 60% compared to legacy ticketing giants.
           </p>
 
-          <div className="overflow-x-auto">
+          {/* MOBILE VIEW: Clean Comparison Cards (Zero Sideways Scroll) */}
+          <div className="space-y-3 sm:hidden">
+            {/* SceneO Highlight Card */}
+            <div className="rounded-2xl border-2 border-rose-500 bg-rose-50/30 p-4 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-black text-rose-600">SceneO</span>
+                <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">Lowest in India</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-xl bg-white p-2 border border-rose-100">
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Host Cut</div>
+                  <div className="font-black text-emerald-700 text-sm">0% (Zero)</div>
+                </div>
+                <div className="rounded-xl bg-white p-2 border border-rose-100">
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Buyer Fee</div>
+                  <div className="font-black text-slate-900 text-sm">5.5% flat</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-rose-200/60 font-medium">
+                <span className="text-slate-600">Host Payout Time:</span>
+                <span className="font-bold text-emerald-700">Daily T+1 Rolling</span>
+              </div>
+            </div>
+
+            {/* BookMyShow Card */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 text-sm">BookMyShow</span>
+                <span className="text-rose-600 text-xs font-black">15% – 25% total cut</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Host Cut: 5% – 12%</span>
+                <span>Payout: 14 – 21 Days</span>
+              </div>
+            </div>
+
+            {/* SortMyScene Card */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 text-sm">SortMyScene</span>
+                <span className="text-rose-600 text-xs font-black">14% – 22% total cut</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Host Cut: 8% – 15%</span>
+                <span>Payout: 7 – 14 Days</span>
+              </div>
+            </div>
+
+            {/* Skillbox Card */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 text-sm">Skillbox</span>
+                <span className="text-rose-600 text-xs font-black">17% – 25% total cut</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Host Cut: 10% – 15%</span>
+                <span>Payout: 7 – 14 Days</span>
+              </div>
+            </div>
+          </div>
+
+          {/* DESKTOP VIEW: Multi-Column Benchmark Table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-600">
                 <tr>

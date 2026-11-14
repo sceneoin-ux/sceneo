@@ -17,6 +17,8 @@ interface DbOrderRow {
   ticket_price: number;
   payment_status: string;
   created_at: string;
+  tier_id?: string;
+  quantity?: number;
   passes?: { pass_token?: string; assigned_seat?: string; is_checked_in?: boolean; checked_in_at?: string }[];
   ticket_tiers?: { tier_name?: string; price?: number };
 }
@@ -114,9 +116,28 @@ export async function GET(req: NextRequest) {
     });
 
     const tiers = (event.ticket_tiers || []) as DbTierRow[];
-    const totalCapacity = tiers.reduce((sum, t) => sum + Number(t.total_capacity || 0), 0);
+
+    // Calculate live sold count per tier from completed PAID orders
+    const tierSoldMap: Record<string, number> = {};
+    for (const o of dbOrders) {
+      if (o.payment_status === "PAID" && o.tier_id) {
+        tierSoldMap[o.tier_id] = (tierSoldMap[o.tier_id] || 0) + Number(o.quantity || 1);
+      }
+    }
+
+    const calculatedTiers = tiers.map((t) => {
+      const tierKey = t.id || "";
+      const liveSold = tierKey && tierSoldMap[tierKey] !== undefined ? tierSoldMap[tierKey] : (Number(t.sold_count) || 0);
+      const effectiveSold = Math.max(Number(t.sold_count || 0), liveSold);
+      return {
+        ...t,
+        sold_count: effectiveSold
+      };
+    });
+
+    const totalCapacity = calculatedTiers.reduce((sum, t) => sum + Number(t.total_capacity || 0), 0);
     const completedOrders = finalOrders.filter((o) => o.status === "PAID");
-    const totalTicketsSold = completedOrders.length;
+    const totalTicketsSold = calculatedTiers.reduce((sum, t) => sum + Number(t.sold_count || 0), 0);
     const remainingCapacity = Math.max(0, totalCapacity - totalTicketsSold);
     const grossEarnings = completedOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
     const checkedInCount = completedOrders.filter((o) => o.isCheckedIn).length;
@@ -138,7 +159,7 @@ export async function GET(req: NextRequest) {
         remainingCapacity,
         grossEarnings,
         checkedInCount,
-        tiers: event.ticket_tiers || []
+        tiers: calculatedTiers
       },
       orders: finalOrders
     });

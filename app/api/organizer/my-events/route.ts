@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 
 interface DbTier {
   total_capacity?: number;
+  sold_count?: number;
 }
 
 interface DbEvent {
@@ -44,11 +45,36 @@ export async function GET(req: NextRequest) {
       console.warn("Database lookup issue:", error.message);
     }
 
-    // 2. If organizer exists in DB, return their real DB events
+    // 2. If organizer exists in DB, return their real DB events with live sales
     if (dbOrg) {
+      const eventIds = (dbOrg.events || []).map((ev: DbEvent) => ev.id);
+      const ordersByEvent: Record<string, { count: number; gross: number }> = {};
+
+      if (eventIds.length > 0) {
+        const { data: dbOrders } = await supabase
+          .from("orders")
+          .select("event_id, quantity, ticket_price, total_paid, payment_status")
+          .in("event_id", eventIds)
+          .eq("payment_status", "PAID");
+
+        if (dbOrders) {
+          for (const o of dbOrders) {
+            if (!ordersByEvent[o.event_id]) {
+              ordersByEvent[o.event_id] = { count: 0, gross: 0 };
+            }
+            ordersByEvent[o.event_id].count += Number(o.quantity || 1);
+            ordersByEvent[o.event_id].gross += Number(o.ticket_price || o.total_paid || 0);
+          }
+        }
+      }
+
       const dbEvents = (dbOrg.events || []).map((ev: DbEvent) => {
         const tiers = ev.ticket_tiers || [];
         const totalCapacity = tiers.reduce((acc: number, t: DbTier) => acc + (t.total_capacity || 0), 0) || 0;
+        const tierSoldTotal = tiers.reduce((acc: number, t: DbTier) => acc + (t.sold_count || 0), 0);
+        const evStats = ordersByEvent[ev.id] || { count: 0, gross: 0 };
+        const ticketsSold = Math.max(evStats.count, tierSoldTotal);
+
         return {
           id: ev.id,
           slug: ev.slug,
@@ -61,8 +87,8 @@ export async function GET(req: NextRequest) {
           event_date: ev.event_date,
           gates_open: ev.gates_open,
           totalCapacity: totalCapacity,
-          ticketsSold: 0,
-          grossEarnings: 0,
+          ticketsSold: ticketsSold,
+          grossEarnings: evStats.gross,
           scannerPin: dbOrg.staff_scanner_pin || "----"
         };
       });

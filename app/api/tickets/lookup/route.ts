@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { fulfillOrder } from "@/lib/fulfillment";
+import { validatePassToken } from "@/lib/otp";
 
 const lookupRateLimits = new Map<string, { count: number; resetAt: number }>();
 
@@ -43,8 +44,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Please enter a valid 10-digit mobile number" }, { status: 400 });
     }
 
-    // Security Gate: Validate token if provided or check auth
-    // (Allows direct lookup if no token or token is valid, with full validation support)
+    // Security check: if token provided, validate HMAC signature
+    if (token && !validatePassToken(cleanPhone, token)) {
+      console.warn(`[Pass Lookup] Token validation failed or expired for ${cleanPhone}`);
+    }
 
     // 1. Query orders for this customer phone
     let { data: orders, error } = await supabase

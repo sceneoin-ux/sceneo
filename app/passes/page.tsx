@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowLeft, 
-  Search, 
   Ticket, 
   Calendar, 
   MapPin, 
@@ -49,7 +48,6 @@ export default function MyPassesPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [passes, setPasses] = useState<LookedUpPass[]>([]);
@@ -129,7 +127,6 @@ export default function MyPassesPage() {
       if (!res.ok) {
         setError(data.error || "Incorrect OTP. Please check the code received on your phone and try again.");
       } else {
-        setVerifiedToken(data.token);
         await loadPasses(cleanPhone, data.token);
       }
     } catch {

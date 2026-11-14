@@ -3,7 +3,10 @@ import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
 
 interface DbTierItem {
+  id?: string;
   total_capacity?: number;
+  sold_count?: number;
+  price?: number;
 }
 
 interface DbEventItem {
@@ -18,7 +21,9 @@ interface DbEventItem {
   event_date: string;
   is_published?: boolean;
   ticket_tiers?: DbTierItem[];
+  organizer_id?: string;
   organizers?: {
+    id?: string;
     name?: string;
     phone?: string;
     upi_id?: string;
@@ -37,6 +42,7 @@ interface DbOrderItem {
   total_paid?: number;
   payment_status?: string;
   created_at: string;
+  event_id?: string;
   events?: {
     title?: string;
   };
@@ -87,12 +93,30 @@ export async function GET(req: NextRequest) {
     const { data: dbOrders } = await supabase
       .from("orders")
       .select("*, events(title)")
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .order("created_at", { ascending: false });
+
+    // Aggregate real-time sales and fee metrics per event
+    const eventStatsMap: Record<string, { ticketsSold: number; grossEarnings: number; platformFees: number }> = {};
+    for (const o of (dbOrders || [])) {
+      if (o.payment_status === "PAID" && o.event_id) {
+        if (!eventStatsMap[o.event_id]) {
+          eventStatsMap[o.event_id] = { ticketsSold: 0, grossEarnings: 0, platformFees: 0 };
+        }
+        eventStatsMap[o.event_id].ticketsSold += Number(o.quantity || 1);
+        eventStatsMap[o.event_id].grossEarnings += Number(o.ticket_price || 0);
+        eventStatsMap[o.event_id].platformFees += Number(o.convenience_fee || 0);
+      }
+    }
 
     const eventsList = (dbEvents || []).map((ev: DbEventItem) => {
       const tiers = ev.ticket_tiers || [];
       const totalCapacity = tiers.reduce((acc: number, t: DbTierItem) => acc + (t.total_capacity || 0), 0) || 0;
+      const tierSoldTotal = tiers.reduce((acc: number, t: DbTierItem) => acc + (t.sold_count || 0), 0);
+      const evStats = eventStatsMap[ev.id] || { ticketsSold: 0, grossEarnings: 0, platformFees: 0 };
+      const ticketsSold = Math.max(evStats.ticketsSold, tierSoldTotal);
+      const grossEarnings = evStats.grossEarnings > 0 ? evStats.grossEarnings : (ticketsSold * Number(tiers[0]?.price || 0));
+      const platformFees = evStats.platformFees > 0 ? evStats.platformFees : Math.round(grossEarnings * 0.055);
+
       return {
         id: ev.id,
         slug: ev.slug,
@@ -109,11 +133,18 @@ export async function GET(req: NextRequest) {
         is_published: ev.is_published ?? false,
         event_date: ev.event_date,
         totalCapacity,
-        ticketsSold: 0,
-        grossEarnings: 0,
-        platformFees: 0
+        ticketsSold,
+        grossEarnings,
+        platformFees
       };
     });
+
+    const orgEventsMap: Record<string, number> = {};
+    for (const ev of (dbEvents || [])) {
+      if (ev.organizer_id) {
+        orgEventsMap[ev.organizer_id] = (orgEventsMap[ev.organizer_id] || 0) + 1;
+      }
+    }
 
     const organizersList = (dbOrganizers || []).map((org) => ({
       id: org.id,
@@ -122,7 +153,7 @@ export async function GET(req: NextRequest) {
       email: org.email || "",
       upi_id: org.upi_id || "",
       is_verified: org.is_verified ?? true,
-      events_count: 0
+      events_count: orgEventsMap[org.id] || 0
     }));
 
     const ordersList = (dbOrders || []).map((o: DbOrderItem) => ({
@@ -139,7 +170,7 @@ export async function GET(req: NextRequest) {
       created_at: new Date(o.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
     }));
 
-    const totalGMV = ordersList.filter(o => o.payment_status === "PAID").reduce((sum, o) => sum + o.total_paid, 0);
+    const totalGMV = ordersList.filter(o => o.payment_status === "PAID").reduce((sum, o) => sum + (o.ticket_price * o.quantity || o.total_paid), 0);
     const totalPlatformRevenue = ordersList.filter(o => o.payment_status === "PAID").reduce((sum, o) => sum + o.convenience_fee, 0);
     const totalTicketsSold = ordersList.filter(o => o.payment_status === "PAID").reduce((sum, o) => sum + o.quantity, 0);
 
