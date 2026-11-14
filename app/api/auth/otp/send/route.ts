@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const twoFactorKey = process.env.TWOFACTOR_API_KEY;
-    const templateName = process.env.TWOFACTOR_OTP_TEMPLATE || "OTP1";
+    const templateName = process.env.TWOFACTOR_OTP_TEMPLATE || "SCENEO_OTP";
 
     // 1. Dispatch real telecom SMS via 2Factor.in (using approved DLT template to prevent voice fallback)
     if (twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
