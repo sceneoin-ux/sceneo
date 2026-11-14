@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyOtpCode } from "@/lib/otp";
+import { verifyOtpCode, generatePassToken } from "@/lib/otp";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, code } = body;
+    const { phone, code, sessionId } = body;
 
     const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
     if (cleanPhone.length !== 10) {
@@ -14,14 +14,55 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!code || code.trim().length !== 6) {
+    const trimmedCode = (code || "").trim();
+    if (trimmedCode.length !== 6) {
       return NextResponse.json(
-        { error: "Please enter the 6-digit verification code." },
+        { error: "Please enter the complete 6-digit verification code." },
         { status: 400 }
       );
     }
 
-    const result = verifyOtpCode(cleanPhone, code);
+    const twoFactorKey = process.env.TWOFACTOR_API_KEY;
+
+    // 1. Sandbox test bypass code (ONLY active in non-production local development without 2Factor key)
+    if (process.env.NODE_ENV !== "production" && (!twoFactorKey || twoFactorKey === "your_2factor_api_key") && trimmedCode === "123456") {
+      const token = generatePassToken(cleanPhone);
+      return NextResponse.json({
+        success: true,
+        token,
+        message: "Verified successfully (Dev Sandbox)."
+      });
+    }
+
+    // 2. Verify with 2Factor.in if sessionId is provided
+    if (sessionId && twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
+      try {
+        const tfRes = await fetch(
+          `https://2factor.in/API/V1/${twoFactorKey}/SMS/VERIFY/${sessionId}/${trimmedCode}`
+        );
+        const tfData = await tfRes.json();
+
+        if (tfData.Status === "Success" && tfData.Details === "OTP Matched") {
+          console.log(`[2Factor SMS] OTP verified successfully for +91 ${cleanPhone}`);
+          const token = generatePassToken(cleanPhone);
+          return NextResponse.json({
+            success: true,
+            token,
+            message: "Mobile verified successfully."
+          });
+        } else {
+          return NextResponse.json(
+            { error: "Incorrect OTP. Please enter the 6-digit code received on your phone." },
+            { status: 401 }
+          );
+        }
+      } catch (tfErr) {
+        console.warn("[2Factor Verify Error, falling back to local check]:", tfErr);
+      }
+    }
+
+    // 3. Fallback to local in-memory OTP verification
+    const result = verifyOtpCode(cleanPhone, trimmedCode);
 
     if (!result.valid) {
       return NextResponse.json(

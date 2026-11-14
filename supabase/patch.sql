@@ -8,6 +8,7 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT 
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS audi_screen_number TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS cover_charge_note TEXT DEFAULT 'Entry pass only.';
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS gallery_urls TEXT[] DEFAULT '{}';
 ALTER TABLE public.organizers ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.organizers ADD COLUMN IF NOT EXISTS staff_scanner_pin TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS checked_in_count INT DEFAULT 0;

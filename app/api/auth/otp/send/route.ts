@@ -14,11 +14,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const code = generateOtp(cleanPhone);
-    console.log(`[SceneO Security OTP] Generated 6-digit OTP for +91 ${cleanPhone}: ${code}`);
+    const twoFactorKey = process.env.TWOFACTOR_API_KEY;
+
+    // 1. Dispatch real telecom SMS via 2Factor.in
+    if (twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
+      try {
+        const tfRes = await fetch(
+          `https://2factor.in/API/V1/${twoFactorKey}/SMS/${cleanPhone}/AUTOGEN`
+        );
+        const tfData = await tfRes.json();
+
+        if (tfData.Status === "Success") {
+          console.log(`[2Factor SMS] Dispatched real telecom SMS to +91 ${cleanPhone} (session: ${tfData.Details})`);
+          return NextResponse.json({
+            success: true,
+            provider: "2factor",
+            sessionId: tfData.Details,
+            message: `6-digit verification code sent via SMS to +91 ${cleanPhone}. Please check your phone.`
+          });
+        } else {
+          console.warn("[2Factor SMS Notice]:", tfData.Details);
+        }
+      } catch (tfErr) {
+        console.warn("[2Factor SMS Network Exception]:", tfErr);
+      }
+    }
+
+    // 2. Fallback in-memory generator if SMS gateway key is absent
+    const fallbackCode = generateOtp(cleanPhone);
+    console.log(`[SceneO Security OTP] Generated fallback OTP for +91 ${cleanPhone}: ${fallbackCode}`);
 
     return NextResponse.json({
       success: true,
+      provider: "local",
       message: `Verification code sent to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)}`
     });
   } catch (err: unknown) {

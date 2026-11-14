@@ -32,8 +32,8 @@ export function verifyOtpCode(phone: string, inputCode: string): { valid: boolea
   const cleanPhone = phone.replace(/\D/g, "").slice(-10);
   const trimmed = (inputCode || "").trim();
 
-  // 1. Universal testing & sandbox bypass code
-  if (trimmed === "123456") {
+  // 1. Sandbox test bypass code (ONLY active in non-production local development without 2Factor key)
+  if (process.env.NODE_ENV !== "production" && (!process.env.TWOFACTOR_API_KEY || process.env.TWOFACTOR_API_KEY === "your_2factor_api_key") && trimmed === "123456") {
     const token = generatePassToken(cleanPhone);
     return { valid: true, token };
   }

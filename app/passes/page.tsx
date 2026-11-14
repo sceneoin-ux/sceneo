@@ -18,7 +18,6 @@ import {
   RotateCcw
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { sendPhoneOTP, verifyPhoneOTP } from "@/lib/firebase";
 
 interface LookedUpPass {
   orderId: string;
@@ -49,6 +48,7 @@ export default function MyPassesPage() {
   const [step, setStep] = useState<"phone" | "otp" | "verified">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ export default function MyPassesPage() {
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
-  // Step 1: Send OTP to Mobile
+  // Step 1: Send OTP to Mobile via 2Factor Telecom SMS
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
@@ -80,18 +80,6 @@ export default function MyPassesPage() {
     setStatusMessage("");
 
     try {
-      // 1. Dispatch real SMS via Firebase Google Cloud Phone Auth
-      let fbSentRealSms = false;
-      try {
-        const fbRes = await sendPhoneOTP(cleanPhone);
-        if (fbRes.success && !fbRes.simulated) {
-          fbSentRealSms = true;
-        }
-      } catch (fbErr) {
-        console.warn("Firebase Phone Auth fallback:", fbErr);
-      }
-
-      // 2. Also register in local OTP cache
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -99,13 +87,15 @@ export default function MyPassesPage() {
       });
       const data = await res.json();
 
-      setStep("otp");
-      setResendCountdown(30);
-
-      if (fbSentRealSms) {
-        setStatusMessage(`📲 6-digit verification code sent via SMS to +91 ${cleanPhone}. Please check your phone.`);
+      if (!res.ok) {
+        setError(data.error || "Failed to dispatch verification code.");
       } else {
-        setStatusMessage(`Verification code sent to +91 ${cleanPhone}. Please check your messages.`);
+        if (data.sessionId) {
+          setSessionId(data.sessionId);
+        }
+        setStep("otp");
+        setResendCountdown(30);
+        setStatusMessage(data.message || `📲 6-digit OTP dispatched via SMS to +91 ${cleanPhone}. Please check your phone.`);
       }
     } catch {
       setError("Network error while connecting to security desk. Please try again.");
@@ -114,7 +104,7 @@ export default function MyPassesPage() {
     }
   };
 
-  // Step 2: Verify OTP
+  // Step 2: Verify OTP via 2Factor Telecom Engine
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
@@ -129,49 +119,15 @@ export default function MyPassesPage() {
     setError("");
 
     try {
-      // 1. Check if user typed test code 123456 (instant bypass)
-      if (cleanOtp === "123456") {
-        const res = await fetch("/api/auth/otp/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanPhone, code: "123456" })
-        });
-        const data = await res.json();
-        if (data.token) {
-          setVerifiedToken(data.token);
-          await loadPasses(cleanPhone, data.token);
-          return;
-        }
-      }
-
-      // 2. Try Firebase OTP verification
-      try {
-        const fbVerify = await verifyPhoneOTP(cleanOtp);
-        if (fbVerify.success) {
-          const res = await fetch("/api/auth/otp/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: cleanPhone, code: "123456" })
-          });
-          const data = await res.json();
-          setVerifiedToken(data.token);
-          await loadPasses(cleanPhone, data.token);
-          return;
-        }
-      } catch {
-        // Fallback to server verification
-      }
-
-      // 3. Fallback to server verification
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, code: cleanOtp })
+        body: JSON.stringify({ phone: cleanPhone, code: cleanOtp, sessionId })
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Incorrect verification code. Please check and try again.");
+        setError(data.error || "Incorrect OTP. Please check the code received on your phone and try again.");
       } else {
         setVerifiedToken(data.token);
         await loadPasses(cleanPhone, data.token);
@@ -676,8 +632,6 @@ export default function MyPassesPage() {
             )}
           </div>
         )}
-        {/* Invisible container for Firebase Phone Auth reCAPTCHA */}
-        <div id="recaptcha-container" />
       </main>
     </div>
   );

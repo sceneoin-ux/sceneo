@@ -19,7 +19,6 @@ import {
   Music,
   Lock
 } from "lucide-react";
-import { sendPhoneOTP, verifyPhoneOTP, getFirebaseConfig } from "@/lib/firebase";
 import { BrandLogo } from "@/components/BrandLogo";
 
 interface HostedEvent {
@@ -66,24 +65,32 @@ export default function OrganizerHubPage() {
   const [events, setEvents] = useState<HostedEvent[]>([]);
   const [organizer, setOrganizer] = useState<OrganizerProfile | null>(null);
 
-  const { isConfigured: isFirebaseConfigured } = getFirebaseConfig();
-
   const handleSendOtp = async () => {
-    if (!phoneInput) {
-      alert("Please enter your registered mobile number");
+    const cleanPhone = phoneInput.replace(/\D/g, "").slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      alert("Please enter a valid 10-digit Indian mobile number");
       return;
     }
     setIsSendingOtp(true);
     setOtpMessage("");
     try {
-      const res = await sendPhoneOTP(phoneInput);
-      if (res.success) {
-        setVerificationId(res.verificationId);
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to dispatch SMS OTP. Please try again.");
+      } else {
+        if (data.sessionId) {
+          setVerificationId(data.sessionId);
+        }
         setOtpSent(true);
-        setOtpMessage("SMS OTP dispatched to your mobile number.");
+        setOtpMessage(`📲 6-digit OTP sent via SMS to +91 ${cleanPhone}. Please check your phone.`);
       }
     } catch {
-      alert("Failed to send SMS OTP. Please try again.");
+      alert("Failed to send SMS OTP. Please check your connection and try again.");
     } finally {
       setIsSendingOtp(false);
     }
@@ -91,17 +98,27 @@ export default function OrganizerHubPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode) return;
+    const cleanPhone = phoneInput.replace(/\D/g, "").slice(-10);
+    const cleanCode = otpCode.trim();
+    if (cleanCode.length !== 6) {
+      alert("Please enter the complete 6-digit OTP code.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await verifyPhoneOTP(otpCode, verificationId);
-      if (res.success) {
-        fetchHostData(phoneInput);
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone, code: cleanCode, sessionId: verificationId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchHostData(cleanPhone);
       } else {
-        alert("Invalid OTP code. Please check the 6-digit code received.");
+        alert(data.error || "Invalid OTP code. Please check the code received on your phone.");
       }
     } catch {
-      alert("Verification failed.");
+      alert("Verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -206,7 +223,7 @@ export default function OrganizerHubPage() {
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                Phone OTP (Firebase)
+                Phone OTP (SMS)
               </button>
               <button
                 type="button"
@@ -226,12 +243,12 @@ export default function OrganizerHubPage() {
               <span className="text-slate-500">Security Verification:</span>
               <span className="font-bold text-emerald-700 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span>{isFirebaseConfigured ? "Firebase OTP Protected" : "Security Verification Active"}</span>
+                <span>Carrier SMS OTP Protected</span>
               </span>
             </div>
 
             {authMethod === "otp" ? (
-              /* FIREBASE PHONE OTP WORKFLOW */
+              /* CARRIER SMS OTP WORKFLOW */
               <div className="mt-5 space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
@@ -257,7 +274,7 @@ export default function OrganizerHubPage() {
                     disabled={isSendingOtp}
                     className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-800 disabled:opacity-50"
                   >
-                    {isSendingOtp ? "Dispatching SMS..." : "Send SMS OTP via Firebase →"}
+                    {isSendingOtp ? "Dispatching SMS..." : "Send SMS Verification Code →"}
                   </button>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -268,7 +285,7 @@ export default function OrganizerHubPage() {
                     )}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                        6-Digit Firebase OTP Code
+                        6-Digit SMS Verification Code
                       </label>
                       <input
                         type="text"
