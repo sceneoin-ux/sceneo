@@ -17,11 +17,9 @@ export async function POST(req: NextRequest) {
     const code = generateOtp(cleanPhone);
     console.log(`[SceneO Security OTP] Generated 6-digit OTP for +91 ${cleanPhone}: ${code}`);
 
-    // Return success. During testing & staging, we also return the demo code hint (or 123456)
     return NextResponse.json({
       success: true,
-      message: `OTP sent to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)}. For quick testing, use code: ${code} or 123456`,
-      testCode: code
+      message: `Verification code sent to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)}`
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Failed to generate OTP";
