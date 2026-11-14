@@ -93,7 +93,7 @@ export default function MyPassesPage() {
         }
         setStep("otp");
         setResendCountdown(30);
-        setStatusMessage(data.message || `📲 6-digit OTP dispatched via SMS to +91 ${cleanPhone}. Please check your phone.`);
+        setStatusMessage(data.message || `📞 Automated call dialing +91 ${cleanPhone}. Please answer to hear your 6-digit code.`);
       }
     } catch {
       setError("Network error while connecting to security desk. Please try again.");
@@ -340,7 +340,7 @@ export default function MyPassesPage() {
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600">
             {step === "phone" && "Enter your 10-digit mobile number to verify your identity and unlock your passes."}
-            {step === "otp" && `Enter the 6-digit verification code sent to +91 ${phone}.`}
+            {step === "otp" && `Answer the incoming automated call on +91 ${phone} to hear your 6-digit code.`}
             {step === "verified" && `Showing verified bookings registered under +91 ${phone}.`}
           </p>
         </div>
@@ -378,7 +378,7 @@ export default function MyPassesPage() {
                 ) : (
                   <>
                     <KeyRound className="h-4 w-4 text-rose-400" />
-                    <span>Send OTP</span>
+                    <span>Get Code (Call)</span>
                   </>
                 )}
               </button>
@@ -429,6 +429,9 @@ export default function MyPassesPage() {
                 placeholder="• • • • • •"
                 className="w-full tracking-[0.5em] text-center text-2xl font-bold py-3 px-4 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900"
               />
+              <p className="mt-2 text-[11px] text-slate-500">
+                Please answer the incoming automated phone call to hear your 6-digit code.
+              </p>
 
               {statusMessage && (
                 <div className="mt-3 text-[11px] font-semibold text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">

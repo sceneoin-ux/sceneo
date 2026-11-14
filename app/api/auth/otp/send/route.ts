@@ -15,32 +15,31 @@ export async function POST(req: NextRequest) {
     }
 
     const twoFactorKey = process.env.TWOFACTOR_API_KEY;
-    const templateName = process.env.TWOFACTOR_OTP_TEMPLATE || "SCENEO_OTP";
 
-    // 1. Generate cryptographically random 6-digit OTP in local security store
+    // 1. Generate local fallback OTP for dev/offline resilience
     const otpCode = generateOtp(cleanPhone);
 
-    // 2. Dispatch real telecom SMS via 2Factor.in direct manual template route (bypasses AUTOGEN voice failover loop)
+    // 2. Dispatch Voice/SMS OTP via 2Factor.in AUTOGEN
     if (twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
       try {
         const tfRes = await fetch(
-          `https://2factor.in/API/V1/${twoFactorKey}/SMS/91${cleanPhone}/${otpCode}/${templateName}`
+          `https://2factor.in/API/V1/${twoFactorKey}/SMS/${cleanPhone}/AUTOGEN`
         );
         const tfData = await tfRes.json();
 
         if (tfData.Status === "Success") {
-          console.log(`[2Factor SMS] Dispatched real telecom SMS to +91 ${cleanPhone} (session: ${tfData.Details})`);
+          console.log(`[2Factor OTP] Dispatched verification call/SMS to +91 ${cleanPhone} (session: ${tfData.Details})`);
           return NextResponse.json({
             success: true,
             provider: "2factor",
             sessionId: tfData.Details,
-            message: `6-digit verification code sent via SMS to +91 ${cleanPhone}. Please check your phone.`
+            message: `📞 An automated call is dialing +91 ${cleanPhone}. Please answer the call to hear your 6-digit verification code.`
           });
         } else {
-          console.warn("[2Factor SMS Notice]:", tfData.Details);
+          console.warn("[2Factor OTP Notice]:", tfData.Details);
         }
       } catch (tfErr) {
-        console.warn("[2Factor SMS Network Exception]:", tfErr);
+        console.warn("[2Factor OTP Network Exception]:", tfErr);
       }
     }
 

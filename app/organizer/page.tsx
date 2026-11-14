@@ -87,7 +87,7 @@ export default function OrganizerHubPage() {
           setVerificationId(data.sessionId);
         }
         setOtpSent(true);
-        setOtpMessage(`📲 6-digit OTP sent via SMS to +91 ${cleanPhone}. Please check your phone.`);
+        setOtpMessage(data.message || `📞 Automated call dialing +91 ${cleanPhone}. Please answer the call to hear your 6-digit code.`);
       }
     } catch {
       alert("Failed to send SMS OTP. Please check your connection and try again.");
@@ -274,7 +274,7 @@ export default function OrganizerHubPage() {
                     disabled={isSendingOtp}
                     className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-800 disabled:opacity-50"
                   >
-                    {isSendingOtp ? "Dispatching SMS..." : "Send SMS Verification Code →"}
+                    {isSendingOtp ? "Placing Call..." : "Get Verification Code (Phone Call) →"}
                   </button>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -285,7 +285,7 @@ export default function OrganizerHubPage() {
                     )}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                        6-Digit SMS Verification Code
+                        6-Digit Verification Code
                       </label>
                       <input
                         type="text"
@@ -293,9 +293,12 @@ export default function OrganizerHubPage() {
                         required
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value)}
-                        placeholder="123456"
+                        placeholder="Enter 6-digit code"
                         className="w-full text-center tracking-widest text-lg font-bold rounded-xl border border-slate-200 bg-white py-2.5 text-slate-900 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                       />
+                      <p className="mt-1.5 text-[11px] text-slate-500 text-center">
+                        Please answer the automated phone call on your mobile to hear your code.
+                      </p>
                     </div>
 
                     <button

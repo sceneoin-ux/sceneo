@@ -24,17 +24,7 @@ export async function POST(req: NextRequest) {
 
     const twoFactorKey = process.env.TWOFACTOR_API_KEY;
 
-    // 1. Sandbox test bypass code (ONLY active in non-production local development without 2Factor key)
-    if (process.env.NODE_ENV !== "production" && (!twoFactorKey || twoFactorKey === "your_2factor_api_key") && trimmedCode === "123456") {
-      const token = generatePassToken(cleanPhone);
-      return NextResponse.json({
-        success: true,
-        token,
-        message: "Verified successfully (Dev Sandbox)."
-      });
-    }
-
-    // 2. Verify with 2Factor.in if sessionId is provided
+    // 1. Verify with 2Factor.in if sessionId is provided
     if (sessionId && twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
       try {
         const tfRes = await fetch(
