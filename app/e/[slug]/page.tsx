@@ -157,6 +157,12 @@ function EventBookingContent() {
     e.preventDefault();
     if (!eventData) return;
 
+    const cleanEmail = attendeeEmail.trim();
+    if (!cleanEmail || !cleanEmail.includes("@") || cleanEmail.endsWith("@sceneo.temp")) {
+      alert("A valid email address is required so we can deliver your ticket pass directly to your inbox upon booking.");
+      return;
+    }
+
     if (!agreedToCover && eventData.hasCoverCharge) {
       alert("Please acknowledge the venue entry rules and cover charge disclaimer.");
       return;
@@ -184,7 +190,7 @@ function EventBookingContent() {
           quantity: selectedQty,
           customerName: attendeeName || "Guest Attendee",
           customerPhone: attendeePhone || "9988776655",
-          customerEmail: attendeeEmail || `${(attendeePhone || "9988776655").replace(/\D/g, "")}@sceneo.temp`
+          customerEmail: cleanEmail
         })
       });
 
@@ -506,8 +512,16 @@ function EventBookingContent() {
               <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-75 animate-pulse" />
             </div>
 
+            {/* Automatic Email Confirmation Banner */}
+            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-900 flex items-center justify-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>
+                Ticket pass &amp; invoice automatically sent directly to <strong>{attendeeEmail}</strong>
+              </span>
+            </div>
+
             {/* Quick Action Buttons */}
-            <div className="mt-6 flex flex-col gap-2.5">
+            <div className="mt-4 flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={handleSharePass}
@@ -839,15 +853,17 @@ function EventBookingContent() {
 
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                      Email Address <span className="text-[10px] font-normal text-slate-400">(for instant pass copy &amp; invoice)</span>
+                      Email Address <span className="text-rose-500 font-bold">*</span> <span className="text-[10px] font-normal text-slate-400">(ticket pass sent directly to inbox)</span>
                     </label>
                     <input
                       type="email"
+                      required
                       value={attendeeEmail}
                       onChange={(e) => setAttendeeEmail(e.target.value)}
                       placeholder="name@gmail.com"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-xs font-semibold text-slate-900 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     />
+                    <p className="mt-1 text-[10px] text-slate-400">Pass and GST invoice are automatically sent directly to your email upon booking.</p>
                   </div>
 
                   {eventData.hasCoverCharge && (

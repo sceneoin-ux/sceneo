@@ -93,7 +93,7 @@ export default function MyPassesPage() {
         }
         setStep("otp");
         setResendCountdown(30);
-        setStatusMessage(data.message || `📞 Automated call dialing +91 ${cleanPhone}. Please answer to hear your 6-digit code.`);
+        setStatusMessage(data.message || `💬 Verification code sent via SMS to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)}`);
       }
     } catch {
       setError("Network error while connecting to security desk. Please try again.");
@@ -340,7 +340,7 @@ export default function MyPassesPage() {
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600">
             {step === "phone" && "Enter your 10-digit mobile number to verify your identity and unlock your passes."}
-            {step === "otp" && `Answer the incoming automated call on +91 ${phone} to hear your 6-digit code.`}
+            {step === "otp" && `Enter the 6-digit verification code sent via SMS to +91 ${phone}.`}
             {step === "verified" && `Showing verified bookings registered under +91 ${phone}.`}
           </p>
         </div>
@@ -378,7 +378,7 @@ export default function MyPassesPage() {
                 ) : (
                   <>
                     <KeyRound className="h-4 w-4 text-rose-400" />
-                    <span>Get Code (Call)</span>
+                    <span>Get Code (SMS)</span>
                   </>
                 )}
               </button>
@@ -430,7 +430,7 @@ export default function MyPassesPage() {
                 className="w-full tracking-[0.5em] text-center text-2xl font-bold py-3 px-4 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900"
               />
               <p className="mt-2 text-[11px] text-slate-500">
-                Please answer the incoming automated phone call to hear your 6-digit code.
+                Enter the 6-digit verification code sent via SMS to your mobile.
               </p>
 
               {statusMessage && (

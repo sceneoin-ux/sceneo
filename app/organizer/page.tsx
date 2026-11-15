@@ -87,7 +87,7 @@ export default function OrganizerHubPage() {
           setVerificationId(data.sessionId);
         }
         setOtpSent(true);
-        setOtpMessage(data.message || `📞 Automated call dialing +91 ${cleanPhone}. Please answer the call to hear your 6-digit code.`);
+        setOtpMessage(data.message || `💬 6-digit verification code sent via SMS to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)}`);
       }
     } catch {
       alert("Failed to send SMS OTP. Please check your connection and try again.");
@@ -274,7 +274,7 @@ export default function OrganizerHubPage() {
                     disabled={isSendingOtp}
                     className="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-800 disabled:opacity-50"
                   >
-                    {isSendingOtp ? "Placing Call..." : "Get Verification Code (Phone Call) →"}
+                    {isSendingOtp ? "Sending SMS..." : "Get Verification Code (SMS) →"}
                   </button>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -297,7 +297,7 @@ export default function OrganizerHubPage() {
                         className="w-full text-center tracking-widest text-lg font-bold rounded-xl border border-slate-200 bg-white py-2.5 text-slate-900 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                       />
                       <p className="mt-1.5 text-[11px] text-slate-500 text-center">
-                        Please answer the automated phone call on your mobile to hear your code.
+                        Enter the 6-digit verification code sent via SMS to your mobile.
                       </p>
                     </div>
 

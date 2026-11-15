@@ -14,6 +14,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanEmail = (customerEmail || "").trim();
+    if (!cleanEmail || !cleanEmail.includes("@") || cleanEmail.endsWith("@sceneo.temp")) {
+      return NextResponse.json(
+        { error: "A valid email address is mandatory. Your confirmed ticket pass and GST invoice are delivered directly to your inbox." },
+        { status: 400 }
+      );
+    }
+
     const safeQuantity = Math.max(1, Math.min(10, Math.floor(Number(quantity) || 1)));
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
@@ -107,7 +115,7 @@ export async function POST(req: NextRequest) {
         cashfree_order_id: cfOrderId,
         customer_name: customerName,
         customer_phone: cleanPhone,
-        customer_email: customerEmail || `${cleanPhone}@sceneo.temp`,
+        customer_email: cleanEmail,
         quantity: safeQuantity,
         ticket_price: baseTicketPrice,
         convenience_fee: convenienceFee,

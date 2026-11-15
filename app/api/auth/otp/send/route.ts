@@ -15,25 +15,25 @@ export async function POST(req: NextRequest) {
     }
 
     const twoFactorKey = process.env.TWOFACTOR_API_KEY;
+    const otpTemplate = process.env.TWOFACTOR_OTP_TEMPLATE || "SCENEO_OTP";
 
     // 1. Generate local fallback OTP for dev/offline resilience
     const otpCode = generateOtp(cleanPhone);
 
-    // 2. Dispatch Voice/SMS OTP via 2Factor.in AUTOGEN
+    // 2. Dispatch SMS OTP via 2Factor.in AUTOGEN with approved DLT template
     if (twoFactorKey && twoFactorKey !== "your_2factor_api_key") {
       try {
-        const tfRes = await fetch(
-          `https://2factor.in/API/V1/${twoFactorKey}/SMS/${cleanPhone}/AUTOGEN`
-        );
+        const tfUrl = `https://2factor.in/API/V1/${twoFactorKey}/SMS/${cleanPhone}/AUTOGEN/${otpTemplate}`;
+        const tfRes = await fetch(tfUrl);
         const tfData = await tfRes.json();
 
         if (tfData.Status === "Success") {
-          console.log(`[2Factor OTP] Dispatched verification call/SMS to +91 ${cleanPhone} (session: ${tfData.Details})`);
+          console.log(`[2Factor SMS OTP] Dispatched verification SMS to +91 ${cleanPhone} via ${otpTemplate} (session: ${tfData.Details})`);
           return NextResponse.json({
             success: true,
             provider: "2factor",
             sessionId: tfData.Details,
-            message: `📞 An automated call is dialing +91 ${cleanPhone}. Please answer the call to hear your 6-digit verification code.`
+            message: `💬 6-digit verification code sent via SMS to +91 ${cleanPhone.slice(0, 2)}*** *${cleanPhone.slice(-4)} from SCENEO`
           });
         } else {
           console.warn("[2Factor OTP Notice]:", tfData.Details);

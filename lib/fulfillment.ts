@@ -31,8 +31,29 @@ export async function fulfillOrder(
       return { success: false, error: "Order not found" };
     }
 
-    // 2. If already PAID and has pass, return existing
+    // 2. If already PAID and has pass, ensure email is delivered if valid, then return
     if (order.payment_status === "PAID" && order.passes && order.passes.length > 0) {
+      if (order.customer_email && !order.customer_email.endsWith("@sceneo.temp")) {
+        const event = order.ticket_tiers?.events;
+        try {
+          await sendTicketEmail({
+            toEmail: order.customer_email,
+            attendeeName: order.customer_name || "Valued Guest",
+            eventTitle: event?.title || "Live Experience",
+            eventDate: event?.event_date || "Upcoming",
+            eventTime: event?.gates_open || "Doors Open",
+            venueName: event?.venue_name || "Venue",
+            city: event?.city || "Hyderabad",
+            totalTickets: order.quantity || 1,
+            totalAmount: Number(order.total_paid || 0),
+            bookingRef: order.order_number,
+            passUrl: `https://sceneo.in/e/${event?.slug || "ticket"}?orderId=${order.id}`
+          });
+        } catch (emailErr) {
+          console.warn("[FulfillOrder] Resend email warning:", emailErr);
+        }
+      }
+
       return {
         success: true,
         alreadyProcessed: true,
@@ -123,7 +144,7 @@ export async function fulfillOrder(
     }
 
     // 5. Fire Email via Resend
-    if (order.customer_email) {
+    if (order.customer_email && !order.customer_email.endsWith("@sceneo.temp")) {
       try {
         await sendTicketEmail({
           toEmail: order.customer_email,
@@ -132,7 +153,7 @@ export async function fulfillOrder(
           eventDate: event?.event_date || "Upcoming",
           eventTime: event?.gates_open || "Doors Open",
           venueName: event?.venue_name || "Venue",
-          city: event?.city || "Vijayawada",
+          city: event?.city || "Hyderabad",
           totalTickets: order.quantity || 1,
           totalAmount: Number(order.total_paid || 0),
           bookingRef: order.order_number,
