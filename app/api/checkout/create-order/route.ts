@@ -34,12 +34,16 @@ export async function POST(req: NextRequest) {
 
     let tierPrice = 0;
     let tierSlug = "";
+    let hostName = "Independent Host";
+    let hostPhone = "";
+    let hostUpi = "";
+    let eventTitle = "Live Experience";
 
-    // 1. Fetch Tier & Event from Supabase
+    // 1. Fetch Tier, Event & Host Organizer from Supabase
     try {
       const { data: dbTier, error: tierErr } = await supabase
         .from("ticket_tiers")
-        .select("*, events(*)")
+        .select("*, events(*, organizers(*))")
         .eq("id", tierId)
         .maybeSingle();
 
@@ -48,6 +52,16 @@ export async function POST(req: NextRequest) {
           { error: "Selected ticket tier was not found or is no longer available." },
           { status: 404 }
         );
+      }
+
+      tierPrice = Number(dbTier.price);
+      tierSlug = dbTier.events?.slug || "";
+      eventTitle = dbTier.events?.title || "Live Experience";
+
+      if (dbTier.events?.organizers) {
+        hostName = dbTier.events.organizers.name || hostName;
+        hostPhone = dbTier.events.organizers.phone || hostPhone;
+        hostUpi = dbTier.events.organizers.upi_id || hostUpi;
       }
 
       // 1b. Guard against unpublished / draft events
@@ -173,6 +187,14 @@ export async function POST(req: NextRequest) {
               customer_phone: (customerPhone.replace(/\D/g, "") || "9988776655").slice(-10),
               customer_name: customerName,
               customer_email: customerEmail || "guest@sceneo.in"
+            },
+            order_note: `Host: ${hostName} | UPI: ${hostUpi || "N/A"} | Event: ${eventTitle} | Payout: Rs ${baseTicketPrice.toFixed(2)}`.slice(0, 195),
+            order_tags: {
+              host_name: hostName.slice(0, 50),
+              host_phone: hostPhone ? hostPhone.slice(-10) : "N/A",
+              host_upi: hostUpi ? hostUpi.slice(0, 50) : "N/A",
+              event_title: eventTitle.slice(0, 50),
+              host_payout: baseTicketPrice.toFixed(2)
             },
             order_meta: {
               return_url: `${appBaseUrl}/e/${tierSlug}?order_id={order_id}&status={order_status}`,

@@ -27,9 +27,36 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { data: order, error } = await query.maybeSingle();
+    const { data: initialOrder, error } = await query.maybeSingle();
+    let order = initialOrder;
 
-    if (error || !order) {
+    if (!order) {
+      // Fallback check if orderId is a pass token
+      try {
+        const { data: passRecord } = await supabase
+          .from("passes")
+          .select("order_id")
+          .eq("pass_token", orderId)
+          .maybeSingle();
+
+        if (passRecord?.order_id) {
+          const { data: resolvedOrder } = await supabase
+            .from("orders")
+            .select("*, passes(*), ticket_tiers(*, events(*))")
+            .eq("id", passRecord.order_id)
+            .maybeSingle();
+          order = resolvedOrder;
+        }
+      } catch {
+        // ignore fallback error
+      }
+    }
+
+    if (error && !order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
@@ -40,6 +67,10 @@ export async function GET(req: NextRequest) {
         orderNumber: order.order_number,
         paymentStatus: "PAID",
         totalPaid: order.total_paid,
+        customerName: order.customer_name,
+        customerPhone: order.customer_phone,
+        customerEmail: order.customer_email,
+        quantity: order.quantity,
         pass: order.passes[0],
         event: order.ticket_tiers?.events || null,
         tier: order.ticket_tiers?.tier_name || null
@@ -56,6 +87,10 @@ export async function GET(req: NextRequest) {
           orderNumber: order.order_number,
           paymentStatus: "PAID",
           totalPaid: order.total_paid,
+          customerName: order.customer_name,
+          customerPhone: order.customer_phone,
+          customerEmail: order.customer_email,
+          quantity: order.quantity,
           pass: fulfilled.pass,
           event: order.ticket_tiers?.events || null,
           tier: order.ticket_tiers?.tier_name || null
@@ -103,6 +138,10 @@ export async function GET(req: NextRequest) {
                 orderNumber: order.order_number,
                 paymentStatus: "PAID",
                 totalPaid: order.total_paid,
+                customerName: order.customer_name,
+                customerPhone: order.customer_phone,
+                customerEmail: order.customer_email,
+                quantity: order.quantity,
                 pass: fulfilled.pass,
                 event: order.ticket_tiers?.events || null,
                 tier: order.ticket_tiers?.tier_name || null

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Script from "next/script";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { 
   Calendar, 
   MapPin, 
@@ -77,7 +77,9 @@ interface LoadedEvent {
 
 function EventBookingContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params?.slug as string;
+  const orderIdQuery = searchParams?.get("orderId");
 
   const [eventData, setEventData] = useState<LoadedEvent | null>(null);
   const [flyerSrc, setFlyerSrc] = useState<string>("");
@@ -98,6 +100,40 @@ function EventBookingContent() {
     passToken?: string;
     assignedSeat?: string;
   } | null>(null);
+
+  // 0. Auto-unlock live entry pass when accessed via confirmed order link (e.g. from email)
+  useEffect(() => {
+    if (!orderIdQuery) return;
+    let isMounted = true;
+
+    fetch(`/api/checkout/verify?orderId=${encodeURIComponent(orderIdQuery)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.success && data.paymentStatus === "PAID") {
+          setConfirmedOrder({
+            orderNumber: data.orderNumber,
+            passToken: data.pass?.pass_token,
+            assignedSeat: data.pass?.assigned_seat
+          });
+          if (data.customerName) setAttendeeName(data.customerName);
+          if (data.customerPhone) setAttendeePhone(data.customerPhone);
+          if (data.customerEmail) setAttendeeEmail(data.customerEmail);
+          if (data.quantity) {
+            setQuantities({ passTier: Number(data.quantity) });
+          }
+          setCheckoutComplete(true);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Auto-Open Pass Verification Error]:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderIdQuery]);
 
   // Fetch Event from Supabase API
   useEffect(() => {
