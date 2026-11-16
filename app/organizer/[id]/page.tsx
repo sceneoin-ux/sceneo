@@ -16,6 +16,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface EventStats {
   id: string;
@@ -105,9 +106,8 @@ function DynamicOrganizerDashboard() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">S</span>
-              <span className="text-lg font-bold text-slate-900">Scene<span className="text-rose-600">O</span></span>
+            <Link href="/" className="flex items-center">
+              <BrandLogo size="sm" />
             </Link>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
               Host Portal
