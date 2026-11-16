@@ -22,7 +22,8 @@ import {
   Check,
   X,
   Clock,
-  ArrowUpRight
+  ArrowUpRight,
+  Trash2
 } from "lucide-react";
 import { GATEWAY_STATUS } from "@/lib/gateway-status";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -205,6 +206,35 @@ export default function PlatformOwnerDashboard() {
       }
     } catch {
       alert("Network error. Please try again.");
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
+    const confirmed = window.confirm(
+      `⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete "${eventTitle}"?\n\nThis will delete all ticket tiers, customer orders, and digital passes for this event from the database, and remove it from the site completely.\n\nThis action CANNOT be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem("sceneo_admin_token") || pin;
+      const res = await fetch("/api/admin/delete-event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": token
+        },
+        body: JSON.stringify({ eventId, password: pin })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message);
+        setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
+        fetchAdminData();
+      } else {
+        alert(data.error || "Failed to delete event.");
+      }
+    } catch {
+      alert("Network error. Could not delete event.");
     }
   };
 
@@ -714,6 +744,15 @@ export default function PlatformOwnerDashboard() {
                         >
                           Public Page
                         </Link>
+
+                        <button
+                          onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-xs font-bold text-rose-700 hover:bg-rose-100 transition inline-flex items-center justify-center gap-1"
+                          title="Permanently Delete Event"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Delete</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -866,6 +905,14 @@ export default function PlatformOwnerDashboard() {
                               >
                                 Public Page
                               </Link>
+                              <button
+                                onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                                className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:border-rose-300 transition inline-flex items-center gap-1 shadow-xs"
+                                title="Permanently Delete Event"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                <span>Delete</span>
+                              </button>
                             </div>
                           </td>
                         </tr>

@@ -96,6 +96,10 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false });
 
     // Aggregate real-time sales and fee metrics per event
+    const activeDbEvents = (dbEvents || []).filter(
+      (ev) => ev.description !== "[DELETED BY ADMIN]" && !ev.title?.startsWith("[DELETED]")
+    );
+
     const eventStatsMap: Record<string, { ticketsSold: number; grossEarnings: number; platformFees: number }> = {};
     for (const o of (dbOrders || [])) {
       if (o.payment_status === "PAID" && o.event_id) {
@@ -108,7 +112,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const eventsList = (dbEvents || []).map((ev: DbEventItem) => {
+    const eventsList = activeDbEvents.map((ev: DbEventItem) => {
       const tiers = ev.ticket_tiers || [];
       const totalCapacity = tiers.reduce((acc: number, t: DbTierItem) => acc + (t.total_capacity || 0), 0) || 0;
       const tierSoldTotal = tiers.reduce((acc: number, t: DbTierItem) => acc + (t.sold_count || 0), 0);
@@ -140,7 +144,7 @@ export async function GET(req: NextRequest) {
     });
 
     const orgEventsMap: Record<string, number> = {};
-    for (const ev of (dbEvents || [])) {
+    for (const ev of activeDbEvents) {
       if (ev.organizer_id) {
         orgEventsMap[ev.organizer_id] = (orgEventsMap[ev.organizer_id] || 0) + 1;
       }
