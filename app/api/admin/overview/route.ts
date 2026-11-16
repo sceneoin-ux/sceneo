@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 
 interface DbTierItem {
@@ -78,19 +78,19 @@ export async function GET(req: NextRequest) {
       );
     }
     // 1. Fetch Events strictly from Supabase
-    const { data: dbEvents } = await supabase
+    const { data: dbEvents } = await supabaseAdmin
       .from("events")
       .select("*, ticket_tiers(*), organizers(*)")
       .order("created_at", { ascending: false });
 
     // 2. Fetch Organizers strictly from Supabase
-    const { data: dbOrganizers } = await supabase
+    const { data: dbOrganizers } = await supabaseAdmin
       .from("organizers")
       .select("*")
       .order("created_at", { ascending: false });
 
     // 3. Fetch Orders strictly from Supabase
-    const { data: dbOrders } = await supabase
+    const { data: dbOrders } = await supabaseAdmin
       .from("orders")
       .select("*, events(title)")
       .order("created_at", { ascending: false });

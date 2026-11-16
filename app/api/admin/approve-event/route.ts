@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { logSecurityEvent } from "@/lib/logger";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isAuthorized = (password && password === masterPassword) || (adminToken && adminToken === masterPassword);
+    const expectedToken = crypto
+      .createHmac("sha256", masterPassword)
+      .update("sceneo-admin-active-session")
+      .digest("hex");
+
+    const isAuthorized =
+      (password && password === masterPassword) ||
+      (adminToken && (adminToken === masterPassword || adminToken === expectedToken));
+
     if (!isAuthorized) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
@@ -28,11 +37,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch Event
-    const { data: event, error: fetchErr } = await supabase
+    const { data: event, error: fetchErr } = await supabaseAdmin
       .from("events")
       .select("*, organizers(*)")
       .eq("id", eventId)
       .single();
+
+    console.log("[ADMIN_APPROVE] Fetched event:", { eventId, eventFound: Boolean(event), orgId: event?.organizer_id, fetchErr });
 
     if (fetchErr || !event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
@@ -41,7 +52,7 @@ export async function POST(req: NextRequest) {
     const shouldPublish = action === "approve" ? true : action === "reject" ? false : !event.is_published;
 
     // 2. Update Event Status
-    const { error: updateErr } = await supabase
+    const { error: updateErr } = await supabaseAdmin
       .from("events")
       .update({ is_published: shouldPublish })
       .eq("id", eventId);
@@ -52,10 +63,17 @@ export async function POST(req: NextRequest) {
 
     // 3. If approving, also mark organizer as verified
     if (shouldPublish && event.organizer_id) {
-      await supabase
+      const orgResult = await supabaseAdmin
         .from("organizers")
         .update({ is_verified: true })
-        .eq("id", event.organizer_id);
+        .eq("id", event.organizer_id)
+        .select();
+
+      console.log("[ADMIN_APPROVE] Org update result:", orgResult);
+
+      if (orgResult.error) {
+        console.warn("[ADMIN_APPROVE] Organizer verification warning:", orgResult.error.message);
+      }
     }
 
     logSecurityEvent({

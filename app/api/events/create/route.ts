@@ -117,11 +117,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Insert Ticket Tiers
-    const tierRecords = tiers.map((t: { name: string; price: number; capacity: number; description?: string }) => ({
+    const tierRecords = tiers.map((t: { name?: string; tier_name?: string; price: number; capacity?: number; total_capacity?: number; description?: string }) => ({
       event_id: eventId,
-      tier_name: t.name,
+      tier_name: t.name || t.tier_name || "General Admission",
       price: Number(t.price),
-      total_capacity: Number(t.capacity),
+      total_capacity: Number(t.capacity ?? t.total_capacity ?? 100),
       sold_count: 0,
       description: t.description || "General admission ticket"
     }));

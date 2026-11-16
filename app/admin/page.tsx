@@ -199,6 +199,7 @@ export default function PlatformOwnerDashboard() {
         setEvents((prev) =>
           prev.map((ev) => (ev.id === eventId ? { ...ev, is_published: data.isPublished } : ev))
         );
+        fetchAdminData();
       } else {
         alert(data.error || "Failed to update event status.");
       }
