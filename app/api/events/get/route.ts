@@ -13,11 +13,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { data: event, error } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+
+    let query = supabase
       .from("events")
-      .select("*, ticket_tiers(*), organizers(name, is_verified)")
-      .eq("slug", slug)
-      .maybeSingle();
+      .select("*, ticket_tiers(*), organizers(name, is_verified)");
+
+    if (isUuid) {
+      query = query.or(`slug.eq.${slug},id.eq.${slug}`);
+    } else {
+      query = query.eq("slug", slug);
+    }
+
+    const { data: event, error } = await query.maybeSingle();
 
     if (error) {
       return NextResponse.json(
