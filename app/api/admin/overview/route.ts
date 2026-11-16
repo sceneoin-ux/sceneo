@@ -150,7 +150,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const organizersList = (dbOrganizers || []).map((org) => ({
+    const activeDbOrganizers = (dbOrganizers || []).filter(
+      (org) => !org.name?.startsWith("[DELETED]")
+    );
+
+    const organizersList = activeDbOrganizers.map((org) => ({
       id: org.id,
       name: org.name,
       phone: maskPhone(org.phone),

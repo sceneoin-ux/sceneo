@@ -238,6 +238,35 @@ export default function PlatformOwnerDashboard() {
     }
   };
 
+  const handleDeleteOrganizer = async (organizerId: string, organizerName: string) => {
+    const confirmed = window.confirm(
+      `⚠️ PERMANENT HOST DELETION WARNING:\n\nAre you sure you want to delete host "${organizerName}"?\n\nThis will permanently delete this host profile and ALL associated events, ticket tiers, orders, and passes.\n\nThis action CANNOT be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem("sceneo_admin_token") || pin;
+      const res = await fetch("/api/admin/delete-organizer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": token
+        },
+        body: JSON.stringify({ organizerId, password: pin })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message);
+        setOrganizers((prev) => prev.filter((o) => o.id !== organizerId));
+        fetchAdminData();
+      } else {
+        alert(data.error || "Failed to delete host.");
+      }
+    } catch {
+      alert("Network error. Could not delete host.");
+    }
+  };
+
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pin) return;
@@ -970,16 +999,25 @@ export default function PlatformOwnerDashboard() {
                     </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="flex items-center gap-2 pt-2">
                     <a
                       href={`https://wa.me/${org.phone.replace(/\D/g, "")}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
                     >
                       <Phone className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>WhatsApp Organizer</span>
+                      <span>WhatsApp</span>
                     </a>
+
+                    <button
+                      onClick={() => handleDeleteOrganizer(org.id, org.name)}
+                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition inline-flex items-center gap-1 shadow-xs"
+                      title="Permanently Delete Host and their Events"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               ))}
