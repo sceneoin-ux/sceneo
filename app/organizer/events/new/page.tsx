@@ -853,7 +853,7 @@ export default function CreateEventPage() {
 
       {/* ────────────────── HOST KYC SUBMISSION MODAL ────────────────── */}
       {publishedSlug && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3 border border-amber-200">
               <ShieldCheck className="h-7 w-7" />
@@ -863,7 +863,7 @@ export default function CreateEventPage() {
               Event Registered for Verification 🛡️
             </h3>
             <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              To protect attendees from fraud and activate direct 100% bank payouts, please submit your host identification (Aadhaar & PAN card) to SceneO Verification Team.
+              To protect attendees from fraud and activate 100% direct payouts, please submit your host identification (Aadhaar & PAN card) to SceneO Verification Team.
             </p>
 
             {/* KYC Instructions Card */}
@@ -873,7 +873,7 @@ export default function CreateEventPage() {
                 <span>Send Aadhaar & PAN Card (Photo / PDF)</span>
               </div>
               <p className="text-[11px] text-slate-500 pl-6.5">
-                Our verification desk checks your ID and links your UPI ({hostUpiId || "UPI ID"}) for direct split settlements.
+                Our verification desk checks your ID and links your UPI ({hostUpiId || "UPI ID"}) for direct settlements.
               </p>
 
               <div className="font-bold text-slate-900 flex items-center gap-1.5 pt-1">
@@ -881,7 +881,7 @@ export default function CreateEventPage() {
                 <span>Approval Time: 15 to 30 Minutes</span>
               </div>
               <p className="text-[11px] text-slate-500 pl-6.5">
-                Once reviewed, your event automatically goes live for public booking across India!
+                Once approved by the SceneO owner, your event automatically goes live for public booking!
               </p>
             </div>
 
@@ -925,10 +925,10 @@ export default function CreateEventPage() {
                   Preview Draft
                 </Link>
                 <Link
-                  href="/organizer"
+                  href={`/organizer/${publishedSlug}`}
                   className="flex-1 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition text-center"
                 >
-                  Host Dashboard
+                  Host Hub
                 </Link>
               </div>
             </div>

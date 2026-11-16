@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,8 +78,10 @@ export async function POST(req: NextRequest) {
       .replace(/(^-|-$)+/g, "");
     const slug = `${baseSlug}-${Math.floor(Math.random() * 900 + 100)}`;
 
-    // 3. Insert Event into Supabase
+    // 3. Generate Event UUID & Insert Event into Supabase (No .select() to preserve strict RLS policy during pending KYC)
+    const eventId = crypto.randomUUID();
     const insertPayload: Record<string, unknown> = {
+      id: eventId,
       organizer_id: organizerId,
       slug: slug,
       title: title,
@@ -97,30 +100,25 @@ export async function POST(req: NextRequest) {
       cover_charge_note: coverChargeNote || "Entry pass only.",
       outside_food_allowed: outsideFoodAllowed,
       seat_allocation_mode: venueType === "theater" ? "assigned_seating" : "general_admission",
-      is_published: false // Gated pending mandatory Host KYC (Aadhaar & PAN) approval
+      is_published: false // Gated pending Owner Aadhaar & PAN verification approval
     };
 
-    let { data: event, error: eventErr } = await supabase
-      .from("events")
-      .insert(insertPayload)
-      .select()
-      .single();
+    let { error: eventErr } = await supabase.from("events").insert(insertPayload);
 
     if (eventErr && (eventErr.message?.includes("gallery_urls") || eventErr.code === "42703")) {
       delete insertPayload.gallery_urls;
-      const retry = await supabase.from("events").insert(insertPayload).select().single();
-      event = retry.data;
+      const retry = await supabase.from("events").insert(insertPayload);
       eventErr = retry.error;
     }
 
-    if (eventErr || !event) {
+    if (eventErr) {
       console.error("[EVENT CREATE ERROR]:", eventErr);
-      return NextResponse.json({ error: eventErr?.message || "Failed to publish event." }, { status: 500 });
+      return NextResponse.json({ error: eventErr.message || "Failed to submit event for review." }, { status: 500 });
     }
 
     // 4. Insert Ticket Tiers
     const tierRecords = tiers.map((t: { name: string; price: number; capacity: number; description?: string }) => ({
-      event_id: event.id,
+      event_id: eventId,
       tier_name: t.name,
       price: Number(t.price),
       total_capacity: Number(t.capacity),
@@ -135,12 +133,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      eventId: event.id,
-      slug: event.slug,
-      title: event.title,
+      eventId: eventId,
+      slug: slug,
+      title: title,
       isPendingKyc: true,
-      publicUrl: `/e/${event.slug}`,
-      organizerDashboardUrl: `/organizer/${event.slug}`
+      publicUrl: `/e/${slug}`,
+      organizerDashboardUrl: `/organizer/${slug}`
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
